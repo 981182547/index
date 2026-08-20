@@ -1,0 +1,1517 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>项目收入账本</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb;
+  --text-1:#0b0b0b; --text-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --hover:rgba(11,11,11,.04); --active:rgba(11,11,11,.07);
+  --s1:#2a78d6; --s2:#eb6834;
+  --o1:#86b6ef; --o2:#5598e7; --o3:#2a78d6; --o4:#184f95;
+  --track:#cde2fb;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --shadow:0 1px 2px rgba(11,11,11,.04),0 4px 14px rgba(11,11,11,.05);
+  --radius:12px;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19;
+    --text-1:#ffffff; --text-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --hover:rgba(255,255,255,.05); --active:rgba(255,255,255,.09);
+    --s1:#3987e5; --s2:#d95926;
+    --o1:#184f95; --o2:#256abf; --o3:#3987e5; --o4:#86b6ef;
+    --track:#184f95;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19;
+  --text-1:#ffffff; --text-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --hover:rgba(255,255,255,.05); --active:rgba(255,255,255,.09);
+  --s1:#3987e5; --s2:#d95926;
+  --o1:#184f95; --o2:#256abf; --o3:#3987e5; --o4:#86b6ef;
+  --track:#184f95;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--page); color:var(--text-1);
+  font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei UI","PingFang SC",sans-serif;
+  font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0;font-weight:600}
+button{font:inherit;color:inherit}
+
+/* ---------- header ---------- */
+.top{
+  position:sticky; top:0; z-index:40;
+  background:color-mix(in srgb,var(--page) 88%,transparent);
+  backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.top-in{
+  max-width:1240px; margin:0 auto; padding:12px 20px;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;min-width:0}
+.brand h1{font-size:16px;letter-spacing:.2px;white-space:nowrap}
+.brand .sub{font-size:12px;color:var(--muted);white-space:nowrap}
+
+.btn{
+  border:1px solid var(--border); background:var(--surface);
+  border-radius:8px; padding:7px 13px; cursor:pointer;
+  font-size:13px; font-weight:500; white-space:nowrap;
+  transition:background .12s,border-color .12s;
+}
+.btn:hover{background:var(--hover)}
+.btn:active{background:var(--active)}
+.btn.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--hover)}
+.btn.icon{padding:7px 9px;line-height:1}
+.btn.danger{color:var(--crit);border-color:var(--border)}
+.btn.danger:hover{background:color-mix(in srgb,var(--crit) 10%,transparent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+.sync-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--border);border-radius:999px;
+  padding:5px 12px 5px 10px;font-size:12px;color:var(--text-2);
+  background:var(--surface);cursor:pointer;white-space:nowrap;
+}
+.sync-chip:hover{background:var(--hover)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--good)} .dot.err{background:var(--crit)}
+.dot.busy{background:var(--warn);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ---------- layout ---------- */
+main{max-width:1240px;margin:0 auto;padding:20px 20px 64px}
+.card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow);
+}
+section{margin-bottom:16px}
+
+/* ---------- filters ---------- */
+.filters{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  padding:10px 12px;
+}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{
+  border:0;background:transparent;padding:6px 12px;cursor:pointer;
+  font-size:13px;color:var(--text-2);border-right:1px solid var(--border);
+}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--hover)}
+.seg button[aria-pressed="true"]{background:var(--s1);color:#fff;font-weight:600}
+select,input[type=text],input[type=date],input[type=number],input[type=password],textarea{
+  font:inherit;color:var(--text-1);background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:6px 10px;
+}
+select:focus,input:focus,textarea:focus{outline:2px solid var(--s1);outline-offset:-1px}
+.search{flex:1;min-width:150px;max-width:280px}
+.filters .spacer{flex:1}
+.count-note{font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:1.55fr 1fr 1fr 1fr 1fr;gap:12px}
+.tile{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .label{font-size:12px;color:var(--text-2)}
+.tile .value{font-size:22px;font-weight:600;letter-spacing:-.2px}
+.tile .foot{font-size:11.5px;color:var(--muted)}
+.tile.hero .value{font-size:46px;line-height:1.1;letter-spacing:-1.4px;margin:2px 0 1px}
+.tile.hero .label{font-size:13px;color:var(--text-2)}
+.cur{font-size:.6em;font-weight:500;color:var(--text-2);margin-right:2px}
+
+/* ---------- meter ---------- */
+.meter-card{padding:13px 16px}
+.meter-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.meter-head .t{font-size:13px;font-weight:600}
+.meter-head .d{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.meter{height:9px;border-radius:999px;background:var(--track);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:999px;background:var(--s1);transition:width .35s cubic-bezier(.4,0,.2,1)}
+
+/* ---------- charts ---------- */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart{padding:14px 16px 10px}
+.chart.wide{grid-column:1/-1}
+.chart-head{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;flex-wrap:wrap}
+.chart-head h3{font-size:13.5px}
+.chart-head .hint{font-size:11.5px;color:var(--muted)}
+.legend{display:flex;gap:14px;margin:7px 0 4px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)}
+.legend i{width:11px;height:11px;border-radius:3px;flex:none}
+.plot{width:100%;display:block;overflow:visible}
+.chart .note{font-size:11.5px;color:var(--muted);margin:4px 0 2px}
+.empty{padding:32px 8px;text-align:center;color:var(--muted);font-size:13px}
+
+/* ---------- tooltip ---------- */
+#tip{
+  position:fixed;z-index:90;pointer-events:none;opacity:0;
+  transform:translate(-50%,-100%);transition:opacity .1s;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;box-shadow:var(--shadow);padding:8px 11px;
+  font-size:12px;min-width:118px;
+}
+#tip .tt{font-weight:600;font-size:12px;margin-bottom:5px;color:var(--text-1)}
+#tip .tr{display:flex;align-items:center;gap:7px;margin-top:3px}
+#tip .tk{width:11px;height:2px;border-radius:2px;flex:none}
+#tip .tn{color:var(--text-2);margin-right:auto}
+#tip .tv{font-weight:600;font-variant-numeric:tabular-nums;color:var(--text-1)}
+#tip hr{border:0;border-top:1px solid var(--border);margin:6px 0 2px}
+
+/* ---------- table ---------- */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:820px}
+thead th{
+  position:sticky;top:0;background:var(--surface);z-index:2;
+  text-align:left;font-weight:600;font-size:12px;color:var(--text-2);
+  padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;
+  cursor:pointer;user-select:none;
+}
+thead th:hover{background:var(--hover)}
+thead th.no-sort{cursor:default}
+thead th.no-sort:hover{background:var(--surface)}
+th .ar{opacity:.4;font-size:10px;margin-left:3px}
+th.sorted .ar{opacity:1;color:var(--s1)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:hover{background:var(--hover)}
+tbody tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.name{max-width:360px;min-width:200px}
+td.name .n{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.name .m{font-size:11px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tfoot td{padding:10px 12px;font-weight:600;border-top:1px solid var(--axis);background:var(--surface)}
+.pill{
+  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
+  padding:2.5px 9px;border-radius:999px;border:1px solid var(--border);
+  color:var(--text-2);white-space:nowrap;
+}
+.pill.done{color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,transparent);background:color-mix(in srgb,var(--good) 9%,transparent)}
+.pill.wait{color:var(--text-2)}
+.pill .pd{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.tag{font-size:11px;color:var(--text-2);border:1px solid var(--border);border-radius:6px;padding:1.5px 7px;white-space:nowrap}
+.row-acts{display:flex;gap:4px;justify-content:flex-end}
+.row-acts .btn{padding:4px 9px;font-size:12px}
+
+/* ---------- dialog ---------- */
+dialog{
+  border:1px solid var(--border);border-radius:14px;padding:0;
+  background:var(--surface);color:var(--text-1);
+  box-shadow:0 12px 48px rgba(0,0,0,.22); max-width:min(560px,calc(100vw - 24px));
+  width:100%;
+}
+dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
+.dlg-head{padding:16px 20px 0;display:flex;align-items:center;gap:10px}
+.dlg-head h2{font-size:15px;margin-right:auto}
+.dlg-body{padding:14px 20px 4px;max-height:min(66vh,560px);overflow-y:auto}
+.dlg-foot{padding:14px 20px 18px;display:flex;gap:8px;align-items:center}
+.dlg-foot .spacer{flex:1}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12px;color:var(--text-2);margin-bottom:5px}
+.fld input,.fld select,.fld textarea{width:100%}
+.fld textarea{resize:vertical;min-height:54px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hintbox{
+  font-size:12px;color:var(--text-2);background:var(--hover);
+  border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:14px;line-height:1.6;
+}
+.hintbox b{color:var(--text-1)}
+.hintbox code{font-size:11.5px;background:var(--page);padding:1px 5px;border-radius:4px;border:1px solid var(--border)}
+.hintbox a{color:var(--s1)}
+.ro{background:var(--hover);color:var(--text-2)}
+.check{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer;padding:9px 0}
+.check input{width:17px;height:17px;accent-color:var(--s1);cursor:pointer}
+.err-line{font-size:12px;color:var(--crit);margin:8px 0 0;white-space:pre-wrap;word-break:break-all}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);
+  background:var(--text-1);color:var(--page);padding:10px 18px;border-radius:999px;
+  font-size:13px;z-index:120;opacity:0;pointer-events:none;transition:.22s;
+  box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:min(90vw,520px);text-align:center;
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1000px){
+  .kpis{grid-template-columns:1fr 1fr 1fr}
+  .tile.hero{grid-column:1/-1}
+  .charts{grid-template-columns:1fr}
+}
+@media (max-width:620px){
+  main{padding:14px 12px 60px}
+  .top-in{padding:10px 12px}
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}
+  .tile.hero .value{font-size:38px}
+  .brand .sub{display:none}
+  .grid2{grid-template-columns:1fr}
+  .search{max-width:none}
+}
+@media print{
+  .top,.filters,.row-acts,#toast{display:none!important}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>项目收入账本</h1>
+      <span class="sub" id="brandSub"></span>
+    </div>
+    <button class="sync-chip" id="syncChip" title="云同步设置">
+      <span class="dot" id="syncDot"></span><span id="syncText">仅本机</span>
+    </button>
+    <button class="btn icon ghost" id="themeBtn" title="切换深浅色">◐</button>
+    <button class="btn ghost" id="ioBtn">备份</button>
+    <button class="btn primary" id="addBtn">+ 新增项目</button>
+  </div>
+</header>
+
+<main>
+  <section class="card filters">
+    <div class="seg" id="rangeSeg">
+      <button data-range="all" aria-pressed="true">全部</button>
+      <button data-range="year">今年</button>
+      <button data-range="q">近90天</button>
+      <button data-range="m">本月</button>
+    </div>
+    <select id="srcSel" title="来源"><option value="">全部来源</option></select>
+    <select id="stSel" title="结账状态">
+      <option value="">全部状态</option>
+      <option value="1">已结账</option>
+      <option value="0">未结账</option>
+    </select>
+    <input type="text" class="search" id="q" placeholder="搜索项目名 / 单号 / 备注…">
+    <div class="spacer"></div>
+    <span class="count-note" id="filterNote"></span>
+  </section>
+
+  <section class="kpis">
+    <div class="card tile hero">
+      <span class="label">已收金额</span>
+      <span class="value" id="kReceived">—</span>
+      <span class="foot" id="kReceivedFoot"></span>
+    </div>
+    <div class="card tile"><span class="label">签单总额</span><span class="value" id="kTotal">—</span><span class="foot" id="kTotalFoot"></span></div>
+    <div class="card tile"><span class="label">待收金额</span><span class="value" id="kDue">—</span><span class="foot" id="kDueFoot"></span></div>
+    <div class="card tile"><span class="label">已结账项目</span><span class="value" id="kDone">—</span><span class="foot" id="kDoneFoot"></span></div>
+    <div class="card tile"><span class="label">平均单价</span><span class="value" id="kAvg">—</span><span class="foot" id="kAvgFoot"></span></div>
+  </section>
+
+  <section class="card meter-card">
+    <div class="meter-head">
+      <span class="t">回款进度</span>
+      <span class="hint" id="meterSub" style="font-size:12px;color:var(--muted)"></span>
+      <span class="d" id="meterPct"></span>
+    </div>
+    <div class="meter"><i id="meterFill" style="width:0%"></i></div>
+  </section>
+
+  <section class="charts">
+    <div class="card chart wide">
+      <div class="chart-head"><h3>月度签单与回款</h3><span class="hint">按项目日期归月</span></div>
+      <div class="legend">
+        <span><i style="background:var(--s1)"></i>已收</span>
+        <span><i style="background:var(--s2)"></i>待收</span>
+      </div>
+      <svg class="plot" id="chTrend" height="230" role="img" aria-label="月度签单与回款柱状图"></svg>
+      <p class="note" id="trendNote"></p>
+    </div>
+
+    <div class="card chart">
+      <div class="chart-head"><h3>来源分布</h3><span class="hint">签单额</span></div>
+      <svg class="plot" id="chSrc" height="200" role="img" aria-label="各来源签单额条形图"></svg>
+    </div>
+
+    <div class="card chart">
+      <div class="chart-head"><h3>单价分布</h3><span class="hint">项目数量</span></div>
+      <svg class="plot" id="chBin" height="200" role="img" aria-label="项目单价区间分布柱状图"></svg>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="tbl-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th data-k="name">项目名称<span class="ar">▾</span></th>
+          <th data-k="date">日期<span class="ar">▾</span></th>
+          <th data-k="source">来源<span class="ar">▾</span></th>
+          <th class="num" data-k="amount">金额<span class="ar">▾</span></th>
+          <th class="num" data-k="deposit">定金<span class="ar">▾</span></th>
+          <th class="num" data-k="balance">尾款<span class="ar">▾</span></th>
+          <th data-k="settled">结账<span class="ar">▾</span></th>
+          <th class="no-sort num">操作</th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+        <tfoot id="tf"></tfoot>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div id="tip"></div>
+<div id="toast"></div>
+
+<!-- ============ 编辑对话框 ============ -->
+<dialog id="editDlg">
+  <form method="dialog" id="editForm">
+    <div class="dlg-head"><h2 id="editTitle">新增项目</h2></div>
+    <div class="dlg-body">
+      <div class="fld"><label for="fName">项目名称 *</label><input type="text" id="fName" required maxlength="200" placeholder="例：基于STM32的智能鱼缸"></div>
+      <div class="grid2">
+        <div class="fld"><label for="fDate">时间</label><input type="date" id="fDate"></div>
+        <div class="fld"><label for="fSource">来源 / 客户</label><input type="text" id="fSource" list="srcList" maxlength="40" placeholder="淘宝 / 自接单 …"><datalist id="srcList"></datalist></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label for="fAmount">金额 (元) *</label><input type="number" id="fAmount" required min="0" step="1" inputmode="decimal"></div>
+        <div class="fld"><label for="fDeposit">定金 (元)</label><input type="number" id="fDeposit" min="0" step="1" value="0" inputmode="decimal"></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label for="fBalance">尾款 (元) · 自动 = 金额 − 定金</label><input type="text" id="fBalance" class="ro" readonly tabindex="-1"></div>
+        <div class="fld"><label for="fOrder">单号</label><input type="text" id="fOrder" maxlength="60"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="fSettled"><span>已结账（尾款已收到）</span></label>
+      <div class="fld"><label for="fNote">备注</label><textarea id="fNote" maxlength="500"></textarea></div>
+      <p class="err-line" id="editErr" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" id="delBtn" hidden>删除</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="editCancel">取消</button>
+      <button type="submit" class="btn primary">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 同步设置 ============ -->
+<dialog id="syncDlg">
+  <form method="dialog" id="syncForm">
+    <div class="dlg-head"><h2>云同步 · GitHub 私有仓库</h2></div>
+    <div class="dlg-body">
+      <div class="hintbox">
+        账本会存成仓库里的一个 JSON 文件，每次改动是一次 commit（自带历史，可回滚）。<br>
+        <b>仓库必须是 Private</b>，否则收入明细全网可见。<br>
+        令牌只存在这台设备的浏览器里，只发给 <code>api.github.com</code>，不会进 URL。<br>
+        建 token：GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained</b> → 只勾这一个仓库 → Repository permissions 里 <b>Contents: Read and write</b>。
+      </div>
+      <div class="grid2">
+        <div class="fld"><label for="sOwner">用户名 / 组织</label><input type="text" id="sOwner" placeholder="981182547"></div>
+        <div class="fld"><label for="sRepo">仓库名</label><input type="text" id="sRepo" placeholder="demomoney"></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label for="sPath">文件路径</label><input type="text" id="sPath" placeholder="ledger.json"></div>
+        <div class="fld"><label for="sBranch">分支</label><input type="text" id="sBranch" placeholder="main"></div>
+      </div>
+      <div class="fld"><label for="sToken">访问令牌 (Personal access token)</label><input type="password" id="sToken" placeholder="github_pat_… / ghp_…" autocomplete="off"></div>
+      <label class="check"><input type="checkbox" id="sAuto"><span>改动后自动同步</span></label>
+      <p class="err-line" id="syncErr" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" id="syncOff" hidden>断开</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="syncCancel">取消</button>
+      <button type="button" class="btn" id="syncTest">测试连接</button>
+      <button type="submit" class="btn primary">保存并同步</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ 备份 / 导入导出 ============ -->
+<dialog id="ioDlg">
+  <div class="dlg-head"><h2>备份与导出</h2></div>
+  <div class="dlg-body">
+    <div class="hintbox">
+      导出的 JSON 是完整账本（含全部字段），可以在任何设备用「导入」还原。<br>
+      CSV 用 Excel 直接打开（已带 BOM，中文不乱码）。
+    </div>
+    <div class="fld"><button type="button" class="btn" id="expJson" style="width:100%">导出 JSON 备份</button></div>
+    <div class="fld"><button type="button" class="btn" id="expCsv" style="width:100%">导出 CSV（Excel 可打开）</button></div>
+    <div class="fld"><button type="button" class="btn" id="impBtn" style="width:100%">导入 JSON 备份…</button>
+      <input type="file" id="impFile" accept=".json,application/json" hidden></div>
+    <p class="err-line" id="ioErr" hidden></p>
+  </div>
+  <div class="dlg-foot"><div class="spacer"></div><button type="button" class="btn" id="ioClose">关闭</button></div>
+</dialog>
+
+<script>
+"use strict";
+/* ============================================================
+   项目收入账本 — 单文件离线应用
+   存储：localStorage（本机） + GitHub 私有仓库 JSON（多设备）
+   ============================================================ */
+
+const SEED = [];
+
+const LS_DATA = "ledger.data.v1";
+const LS_SYNC = "ledger.sync.v1";
+const LS_THEME = "ledger.theme";
+const SVGNS = "http://www.w3.org/2000/svg";
+
+/* ---------- 工具 ---------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const nowISO = () => new Date().toISOString();
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const nf = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 });
+const money = n => nf.format(Math.round(n || 0));
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const esc = s => String(s == null ? "" : s);
+
+/* 存储垫片：localStorage 在无痕模式 / 受限来源下会抛异常，
+   这时降级到内存，界面照常工作（只是关掉页面不留存）。 */
+const memStore = Object.create(null);
+let storageOK = true;
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { storageOK = false; return k in memStore ? memStore[k] : null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { storageOK = false; memStore[k] = v; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { storageOK = false; delete memStore[k]; } }
+};
+
+function toast(msg, ms) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("on"), ms || 2400);
+}
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64decode(b64) {
+  const bin = atob(String(b64).replace(/\s/g, ""));
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(arr);
+}
+function download(name, text, mime) {
+  const blob = new Blob([text], { type: (mime || "application/json") + ";charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ---------- 记录模型 ---------- */
+// {id,name,date,source,orderNo,amount,deposit,settled,note,createdAt,updatedAt,deleted}
+const received = it => it.settled ? num(it.amount) : Math.min(num(it.deposit), num(it.amount));
+const balance  = it => Math.max(0, num(it.amount) - num(it.deposit));
+const due      = it => num(it.amount) - received(it);
+
+/* ---------- 状态 ---------- */
+let items = [];
+let sync = null;
+let sort = { k: "date", dir: -1 };
+let filt = { range: "all", src: "", st: "", q: "" };
+let syncTimer = null;
+
+/* ---------- 本地存储 ---------- */
+function loadLocal() {
+  try {
+    const raw = store.get(LS_DATA);
+    if (raw) { const d = JSON.parse(raw); if (Array.isArray(d.items)) return d.items; }
+  } catch (e) { console.warn("读取本地数据失败", e); }
+  return SEED.map(s => Object.assign({}, s, {
+    createdAt: s.createdAt || "2026-01-01T00:00:00.000Z",
+    updatedAt: s.updatedAt || "2026-01-01T00:00:00.000Z"
+  }));
+}
+function saveLocal() {
+  try {
+    store.set(LS_DATA, JSON.stringify({ version: 1, updatedAt: nowISO(), items: items }));
+  } catch (e) {
+    toast("本地保存失败：" + e.message, 5000);
+  }
+}
+function loadSync() {
+  try { return JSON.parse(store.get(LS_SYNC) || "null"); } catch (e) { return null; }
+}
+
+/* ---------- 合并（多设备） ---------- */
+function mergeItems(local, remote) {
+  const map = new Map();
+  (remote || []).forEach(it => { if (it && it.id) map.set(it.id, it); });
+  (local || []).forEach(it => {
+    if (!it || !it.id) return;
+    const r = map.get(it.id);
+    if (!r || String(it.updatedAt || "") >= String(r.updatedAt || "")) map.set(it.id, it);
+  });
+  return Array.from(map.values());
+}
+const live = () => items.filter(it => !it.deleted);
+
+/* ============================================================
+   GitHub 同步
+   ============================================================ */
+const GH = {
+  headers(cfg, json) {
+    const h = {
+      "Authorization": "Bearer " + cfg.token,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+    if (json) h["Content-Type"] = "application/json";
+    return h;
+  },
+  url(cfg) {
+    return "https://api.github.com/repos/" + encodeURIComponent(cfg.owner) +
+           "/" + encodeURIComponent(cfg.repo) + "/contents/" +
+           cfg.path.split("/").map(encodeURIComponent).join("/");
+  },
+  async detail(res, what) {
+    let msg = "";
+    try { const j = await res.json(); msg = j.message || ""; } catch (e) {}
+    if (res.status === 401) return "令牌无效或已过期 (401)";
+    if (res.status === 403) return "被拒绝 (403)：令牌缺少 Contents 写权限，或触发了频率限制";
+    if (res.status === 404) {
+      if (what === "repo") {
+        return "找不到仓库 (404)。GitHub 对「没权限看」和「不存在」都回 404，三种可能：\n" +
+               "① 仓库还没建，或用户名/仓库名拼错了\n" +
+               "② 令牌是 Fine-grained，但 Repository access 里没勾选这个仓库\n" +
+               "③ 令牌过期了";
+      }
+      return "写入失败 (404)。可能原因：\n" +
+             "① 令牌缺少 Contents: Read and write 权限（只给了 Read 也会报 404）\n" +
+             "② 令牌没勾选这个仓库\n" +
+             "③ 分支名不对 —— 先点「测试连接」，它会自动填上正确的分支名";
+    }
+    if (res.status === 409) return "版本冲突 (409)，请再点一次同步";
+    if (res.status === 422) return "提交被拒 (422) " + msg;
+    return "HTTP " + res.status + (msg ? " " + msg : "");
+  },
+  async repo(cfg) {
+    const r = await fetch("https://api.github.com/repos/" + encodeURIComponent(cfg.owner) +
+                          "/" + encodeURIComponent(cfg.repo), { headers: this.headers(cfg), cache: "no-store" });
+    if (!r.ok) throw new Error(await this.detail(r, "repo"));
+    return r.json();
+  },
+  async pull(cfg) {
+    const u = this.url(cfg) + "?ref=" + encodeURIComponent(cfg.branch) + "&_=" + Date.now();
+    const r = await fetch(u, { headers: this.headers(cfg), cache: "no-store" });
+    if (r.status === 404) return { sha: null, items: null };   // 文件还没建
+    if (!r.ok) throw new Error(await this.detail(r));
+    const j = await r.json();
+    let data = null;
+    try { data = JSON.parse(b64decode(j.content || "")); } catch (e) { throw new Error("远端文件不是合法 JSON"); }
+    return { sha: j.sha, items: Array.isArray(data.items) ? data.items : null };
+  },
+  async push(cfg, list, sha) {
+    const payload = { version: 1, updatedAt: nowISO(), count: list.filter(x => !x.deleted).length, items: list };
+    const mkBody = withBranch => {
+      const b = {
+        message: "账本更新 " + new Date().toLocaleString("zh-CN"),
+        content: b64encode(JSON.stringify(payload, null, 1))
+      };
+      if (withBranch && cfg.branch) b.branch = cfg.branch;
+      if (sha) b.sha = sha;
+      return JSON.stringify(b);
+    };
+    let r = await fetch(this.url(cfg), { method: "PUT", headers: this.headers(cfg, true), body: mkBody(true) });
+    // 全新的空仓库一次提交都没有，压根没有分支，指定 branch 会 404。
+    // 这时不带 branch 重试一次，让 GitHub 在默认分支上建第一个提交。
+    if (r.status === 404 && cfg.branch) {
+      r = await fetch(this.url(cfg), { method: "PUT", headers: this.headers(cfg, true), body: mkBody(false) });
+    }
+    if (!r.ok) throw new Error(await this.detail(r, "push"));
+    const j = await r.json();
+    return j.content && j.content.sha;
+  }
+};
+
+function setSyncUI(state, text) {
+  const dot = $("#syncDot"), txt = $("#syncText");
+  dot.className = "dot" + (state ? " " + state : "");
+  txt.textContent = text;
+}
+async function doSync(silent) {
+  if (!sync || !sync.token) return;
+  if (doSync._busy) return;
+  doSync._busy = true;
+  setSyncUI("busy", "同步中…");
+  try {
+    const remote = await GH.pull(sync);
+    const merged = mergeItems(items, remote.items);
+    const changed = JSON.stringify(merged) !== JSON.stringify(items);
+    items = merged;
+    saveLocal();
+    await GH.push(sync, items, remote.sha);
+    sync.lastSync = nowISO();
+    store.set(LS_SYNC, JSON.stringify(sync));
+    setSyncUI("ok", "已同步 " + new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }));
+    if (changed) renderAll();
+    if (!silent) toast("同步完成 · 共 " + live().length + " 条");
+  } catch (e) {
+    setSyncUI("err", "同步失败");
+    toast("同步失败：" + e.message, 6000);
+  } finally {
+    doSync._busy = false;
+  }
+}
+function queueSync() {
+  if (!sync || !sync.token || !sync.auto) return;
+  clearTimeout(syncTimer);
+  setSyncUI("busy", "待同步…");
+  syncTimer = setTimeout(() => doSync(true), 2500);
+}
+function refreshSyncChip() {
+  if (!sync || !sync.token) { setSyncUI("", "仅本机"); return; }
+  setSyncUI("ok", sync.lastSync
+    ? "已连 " + sync.owner + "/" + sync.repo
+    : sync.owner + "/" + sync.repo);
+}
+
+/* ============================================================
+   筛选 / 排序
+   ============================================================ */
+function inRange(it) {
+  if (filt.range === "all") return true;
+  if (!it.date) return false;
+  const d = new Date(it.date + "T00:00:00"), n = new Date();
+  if (filt.range === "year") return d.getFullYear() === n.getFullYear();
+  if (filt.range === "m") return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+  if (filt.range === "q") return (n - d) <= 90 * 864e5 && d <= n;
+  return true;
+}
+function filtered() {
+  const q = filt.q.trim().toLowerCase();
+  return live().filter(it => {
+    if (!inRange(it)) return false;
+    if (filt.src && it.source !== filt.src) return false;
+    if (filt.st === "1" && !it.settled) return false;
+    if (filt.st === "0" && it.settled) return false;
+    if (q) {
+      const hay = (it.name + " " + (it.orderNo || "") + " " + (it.note || "") + " " + (it.source || "")).toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+}
+function sorted(list) {
+  const k = sort.k, dir = sort.dir;
+  return list.slice().sort((a, b) => {
+    let x, y;
+    if (k === "balance") { x = balance(a); y = balance(b); }
+    else if (k === "settled") { x = a.settled ? 1 : 0; y = b.settled ? 1 : 0; }
+    else if (k === "amount" || k === "deposit") { x = num(a[k]); y = num(b[k]); }
+    else { x = String(a[k] || ""); y = String(b[k] || ""); }
+    if (x < y) return -dir;
+    if (x > y) return dir;
+    return String(a.name).localeCompare(String(b.name), "zh");
+  });
+}
+
+/* ============================================================
+   SVG 绘图工具
+   ============================================================ */
+function svgEl(tag, attrs, parent) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function clear(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function css(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+
+// 竖条：顶部 4px 圆角，基线端方形
+function barV(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, h, w / 2));
+  if (h <= 0) return "";
+  return "M" + x + "," + (y + h) + "L" + x + "," + (y + r) +
+         "Q" + x + "," + y + " " + (x + r) + "," + y +
+         "L" + (x + w - r) + "," + y +
+         "Q" + (x + w) + "," + y + " " + (x + w) + "," + (y + r) +
+         "L" + (x + w) + "," + (y + h) + "Z";
+}
+// 横条：右端 4px 圆角，基线端方形
+function barH(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w, h / 2));
+  if (w <= 0) return "";
+  return "M" + x + "," + y + "L" + (x + w - r) + "," + y +
+         "Q" + (x + w) + "," + y + " " + (x + w) + "," + (y + r) +
+         "L" + (x + w) + "," + (y + h - r) +
+         "Q" + (x + w) + "," + (y + h) + " " + (x + w - r) + "," + (y + h) +
+         "L" + x + "," + (y + h) + "Z";
+}
+function niceTicks(max, count) {
+  count = count || 4;
+  if (!(max > 0)) return [0, 1];
+  const raw = max / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const nr = raw / mag;
+  let step = nr <= 1 ? 1 : nr <= 2 ? 2 : nr <= 2.5 ? 2.5 : nr <= 5 ? 5 : 10;
+  step *= mag;
+  const top = Math.ceil(max / step) * step, out = [];
+  for (let v = 0; v <= top + step * 1e-6; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+// 按真实渲染宽度裁字（中英文字宽差很大，不能按字数估）
+function fitText(node, maxW) {
+  const full = node.textContent;
+  if (!full || node.getComputedTextLength() <= maxW) return;
+  let lo = 0, hi = full.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    node.textContent = full.slice(0, mid) + "…";
+    if (node.getComputedTextLength() <= maxW) lo = mid; else hi = mid - 1;
+  }
+  node.textContent = lo > 0 ? full.slice(0, lo) + "…" : "…";
+  const t = document.createElementNS(SVGNS, "title");
+  t.textContent = full;
+  node.appendChild(t);
+}
+function axisText(parent, x, y, text, anchor, color, size) {
+  const t = svgEl("text", {
+    x: x, y: y, "text-anchor": anchor || "middle",
+    fill: color || css("--muted"), "font-size": size || 11,
+    "font-family": "inherit", "dominant-baseline": "middle"
+  }, parent);
+  t.textContent = text;
+  return t;
+}
+
+/* ---------- tooltip ---------- */
+const tip = $("#tip");
+function showTip(evt, title, rows, total) {
+  let html = '<div class="tt"></div>';
+  tip.innerHTML = html;
+  tip.firstChild.textContent = title;
+  rows.forEach(r => {
+    const d = document.createElement("div"); d.className = "tr";
+    const k = document.createElement("i"); k.className = "tk"; k.style.background = r.color;
+    const n = document.createElement("span"); n.className = "tn"; n.textContent = r.name;
+    const v = document.createElement("span"); v.className = "tv"; v.textContent = r.value;
+    if (r.color) d.appendChild(k);
+    d.appendChild(n); d.appendChild(v);
+    tip.appendChild(d);
+  });
+  if (total) {
+    tip.appendChild(document.createElement("hr"));
+    const d = document.createElement("div"); d.className = "tr";
+    const n = document.createElement("span"); n.className = "tn"; n.textContent = total.name;
+    const v = document.createElement("span"); v.className = "tv"; v.textContent = total.value;
+    d.appendChild(n); d.appendChild(v);
+    tip.appendChild(d);
+  }
+  tip.style.opacity = "1";
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const pad = 12, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX, y = evt.clientY - 14;
+  x = Math.max(w / 2 + pad, Math.min(window.innerWidth - w / 2 - pad, x));
+  if (y - h < pad) y = evt.clientY + h + 20;
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+function hideTip() { tip.style.opacity = "0"; }
+function hookTip(node, title, rows, total) {
+  node.addEventListener("mouseenter", e => showTip(e, title, rows, total));
+  node.addEventListener("mousemove", moveTip);
+  node.addEventListener("mouseleave", hideTip);
+  node.setAttribute("tabindex", "0");
+  node.addEventListener("focus", e => {
+    const b = node.getBoundingClientRect();
+    showTip({ clientX: b.left + b.width / 2, clientY: b.top }, title, rows, total);
+  });
+  node.addEventListener("blur", hideTip);
+}
+
+/* ============================================================
+   图 1 · 月度签单与回款（堆叠柱）
+   ============================================================ */
+function drawTrend(list) {
+  const svg = $("#chTrend");
+  clear(svg);
+  const W = svg.clientWidth || svg.parentNode.clientWidth - 32;
+  const H = 230;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  const dated = list.filter(it => it.date);
+  const undated = list.length - dated.length;
+  $("#trendNote").textContent = undated
+    ? undated + " 个项目没有填日期，未计入本图（金额 ¥" + money(list.filter(i => !i.date).reduce((s, i) => s + num(i.amount), 0)) + "）"
+    : "";
+
+  if (!dated.length) {
+    axisText(svg, W / 2, H / 2, "所选范围内没有带日期的项目", "middle", css("--muted"), 13);
+    return;
+  }
+
+  const by = new Map();
+  dated.forEach(it => {
+    const m = it.date.slice(0, 7);
+    if (!by.has(m)) by.set(m, { m: m, rec: 0, due: 0, n: 0 });
+    const o = by.get(m);
+    o.rec += received(it); o.due += due(it); o.n++;
+  });
+  const months = Array.from(by.values()).sort((a, b) => a.m < b.m ? -1 : 1);
+
+  const padL = 52, padR = 14, padT = 16, padB = 34;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxV = Math.max.apply(null, months.map(o => o.rec + o.due));
+  const ticks = niceTicks(maxV, 4), top = ticks[ticks.length - 1];
+  const yOf = v => padT + plotH - (v / top) * plotH;
+
+  ticks.forEach(t => {
+    const y = yOf(t);
+    svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: t === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
+    axisText(svg, padL - 8, y, money(t), "end");
+  });
+
+  const band = plotW / months.length;
+  const bw = Math.min(24, band * 0.5);
+  const GAP = 2;
+
+  months.forEach((o, i) => {
+    const cx = padL + band * i + band / 2, x = cx - bw / 2;
+    const totalV = o.rec + o.due;
+    const hRec = (o.rec / top) * plotH;
+    let hDue = (o.due / top) * plotH;
+    const yBase = padT + plotH;
+
+    // 已收（底部，贴基线，方角；若无待收则顶部圆角）
+    if (hRec > 0) {
+      svgEl("path", {
+        d: o.due > 0 ? barV(x, yBase - hRec, bw, hRec, 0) : barV(x, yBase - hRec, bw, hRec, 4),
+        fill: css("--s1")
+      }, svg);
+    }
+    // 待收（顶部，圆角，与下段留 2px 表面间隙）
+    if (hDue > 0) {
+      const yDue = yBase - hRec - GAP - hDue;
+      svgEl("path", { d: barV(x, yDue, bw, hDue, 4), fill: css("--s2") }, svg);
+    }
+
+    // 列合计直接标注（月份少，选择性标注不构成噪声）
+    axisText(svg, cx, yOf(totalV) - 11, money(totalV), "middle", css("--text-2"), 11);
+    axisText(svg, cx, padT + plotH + 17, o.m.replace("-", "/"), "middle", css("--muted"), 11);
+
+    // 命中区：整列，含 2px 间隙，最小 24px
+    const hit = svgEl("rect", {
+      x: cx - Math.max(24, band * 0.9) / 2, y: padT,
+      width: Math.max(24, band * 0.9), height: plotH,
+      fill: "transparent", style: "cursor:pointer"
+    }, svg);
+    hookTip(hit, o.m.replace("-", " 年 ") + " 月 · " + o.n + " 个项目", [
+      { name: "已收", value: "¥" + money(o.rec), color: css("--s1") },
+      { name: "待收", value: "¥" + money(o.due), color: css("--s2") }
+    ], { name: "签单额", value: "¥" + money(totalV) });
+  });
+}
+
+/* ============================================================
+   图 2 · 来源分布（横条，单色）
+   ============================================================ */
+function drawSrc(list) {
+  const svg = $("#chSrc");
+  clear(svg);
+  const W = svg.clientWidth || svg.parentNode.clientWidth - 32;
+
+  const by = new Map();
+  list.forEach(it => {
+    const k = it.source || "未分类";
+    if (!by.has(k)) by.set(k, { k: k, v: 0, n: 0, rec: 0 });
+    const o = by.get(k); o.v += num(it.amount); o.n++; o.rec += received(it);
+  });
+  const rows = Array.from(by.values()).sort((a, b) => b.v - a.v).slice(0, 8);
+  const H = Math.max(140, rows.length * 34 + 26);
+  svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  if (!rows.length) { axisText(svg, W / 2, H / 2, "没有数据", "middle", css("--muted"), 13); return; }
+
+  const padL = Math.min(96, Math.max(56, W * 0.24)), padR = 62, padT = 10;
+  const plotW = W - padL - padR;
+  const maxV = Math.max.apply(null, rows.map(r => r.v));
+  const bandH = (H - padT - 10) / rows.length;
+  const bh = Math.min(24, bandH * 0.62);
+
+  svgEl("line", { x1: padL, y1: padT, x2: padL, y2: H - 10, stroke: css("--axis"), "stroke-width": 1 }, svg);
+
+  rows.forEach((r, i) => {
+    const cy = padT + bandH * i + bandH / 2;
+    const w = maxV > 0 ? (r.v / maxV) * plotW : 0;
+    svgEl("path", { d: barH(padL, cy - bh / 2, w, bh, 4), fill: css("--s1") }, svg);
+
+    fitText(axisText(svg, padL - 9, cy, r.k, "end", css("--text-2"), 12), padL - 13);
+    axisText(svg, padL + w + 8, cy, "¥" + money(r.v), "start", css("--text-2"), 12);
+
+    const hit = svgEl("rect", {
+      x: padL, y: cy - Math.max(24, bandH * 0.9) / 2,
+      width: Math.max(plotW, 1), height: Math.max(24, bandH * 0.9),
+      fill: "transparent", style: "cursor:pointer"
+    }, svg);
+    hookTip(hit, r.k + " · " + r.n + " 个项目", [
+      { name: "签单额", value: "¥" + money(r.v), color: css("--s1") },
+      { name: "已收", value: "¥" + money(r.rec), color: "" },
+      { name: "待收", value: "¥" + money(r.v - r.rec), color: "" }
+    ]);
+  });
+}
+
+/* ============================================================
+   图 3 · 单价分布（柱，序数色阶）
+   ============================================================ */
+const BINS = [
+  { t: "≤500", lo: -Infinity, hi: 500, c: "--o1" },
+  { t: "501–800", lo: 500, hi: 800, c: "--o2" },
+  { t: "801–1500", lo: 800, hi: 1500, c: "--o3" },
+  { t: ">1500", lo: 1500, hi: Infinity, c: "--o4" }
+];
+function drawBins(list) {
+  const svg = $("#chBin");
+  clear(svg);
+  const W = svg.clientWidth || svg.parentNode.clientWidth - 32;
+  const H = 200;
+  svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  const cnt = BINS.map(b => ({ b: b, n: 0, sum: 0 }));
+  list.forEach(it => {
+    const a = num(it.amount);
+    for (let i = 0; i < BINS.length; i++) {
+      if (a > BINS[i].lo && a <= BINS[i].hi) { cnt[i].n++; cnt[i].sum += a; break; }
+    }
+  });
+  if (!list.length) { axisText(svg, W / 2, H / 2, "没有数据", "middle", css("--muted"), 13); return; }
+
+  const padL = 34, padR = 12, padT = 20, padB = 34;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxN = Math.max(1, Math.max.apply(null, cnt.map(c => c.n)));
+  const ticks = niceTicks(maxN, 3), top = ticks[ticks.length - 1];
+  const yOf = v => padT + plotH - (v / top) * plotH;
+
+  ticks.forEach(t => {
+    const y = yOf(t);
+    svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: t === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
+    axisText(svg, padL - 8, y, t, "end");
+  });
+
+  const band = plotW / cnt.length, bw = Math.min(24, band * 0.46);
+  cnt.forEach((c, i) => {
+    const cx = padL + band * i + band / 2, x = cx - bw / 2;
+    const h = (c.n / top) * plotH, yBase = padT + plotH;
+    if (h > 0) svgEl("path", { d: barV(x, yBase - h, bw, h, 4), fill: css(c.b.c) }, svg);
+    if (c.n > 0) axisText(svg, cx, yOf(c.n) - 11, c.n, "middle", css("--text-2"), 11);
+    axisText(svg, cx, yBase + 17, c.b.t, "middle", css("--muted"), 11);
+
+    const hit = svgEl("rect", {
+      x: cx - Math.max(24, band * 0.9) / 2, y: padT,
+      width: Math.max(24, band * 0.9), height: plotH,
+      fill: "transparent", style: "cursor:pointer"
+    }, svg);
+    hookTip(hit, c.b.t + " 元", [
+      { name: "项目数", value: c.n + " 个", color: css(c.b.c) },
+      { name: "合计", value: "¥" + money(c.sum), color: "" }
+    ]);
+  });
+}
+
+/* ============================================================
+   KPI + 表格
+   ============================================================ */
+function renderKPI(list) {
+  const total = list.reduce((s, i) => s + num(i.amount), 0);
+  const rec = list.reduce((s, i) => s + received(i), 0);
+  const dueV = total - rec;
+  const done = list.filter(i => i.settled).length;
+  const avg = list.length ? total / list.length : 0;
+  const pct = total > 0 ? rec / total * 100 : 0;
+
+  $("#kReceived").innerHTML = '<span class="cur">¥</span>' + money(rec);
+  $("#kReceivedFoot").textContent = total > 0 ? "占签单额 " + pct.toFixed(1) + "%" : "";
+  $("#kTotal").innerHTML = '<span class="cur">¥</span>' + money(total);
+  $("#kTotalFoot").textContent = list.length + " 个项目";
+  $("#kDue").innerHTML = '<span class="cur">¥</span>' + money(dueV);
+  $("#kDueFoot").textContent = (list.length - done) + " 个未结账";
+  $("#kDone").textContent = done + " / " + list.length;
+  $("#kDoneFoot").textContent = list.length ? (done / list.length * 100).toFixed(0) + "% 已结" : "";
+  $("#kAvg").innerHTML = '<span class="cur">¥</span>' + money(avg);
+  $("#kAvgFoot").textContent = list.length ? "中位数 ¥" + money(median(list.map(i => num(i.amount)))) : "";
+
+  $("#meterFill").style.width = Math.max(0, Math.min(100, pct)) + "%";
+  $("#meterPct").textContent = "¥" + money(rec) + " / ¥" + money(total) + " · " + pct.toFixed(1) + "%";
+  $("#meterSub").textContent = dueV > 0 ? "还有 ¥" + money(dueV) + " 没收到" : (total > 0 ? "全部结清" : "");
+}
+function median(a) {
+  if (!a.length) return 0;
+  const s = a.slice().sort((x, y) => x - y), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+function renderTable(list) {
+  const tb = $("#tb"), tf = $("#tf");
+  tb.textContent = ""; tf.textContent = "";
+  const rows = sorted(list);
+
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 8; td.className = "empty"; td.textContent = "没有符合条件的项目";
+    tr.appendChild(td); tb.appendChild(tr);
+    return;
+  }
+
+  rows.forEach(it => {
+    const tr = document.createElement("tr");
+    tr.dataset.id = it.id;
+
+    const tdN = document.createElement("td"); tdN.className = "name";
+    const n = document.createElement("span"); n.className = "n"; n.textContent = it.name; n.title = it.name;
+    tdN.appendChild(n);
+    const meta = [it.orderNo, it.note].filter(Boolean).join(" · ");
+    if (meta) { const m = document.createElement("span"); m.className = "m"; m.textContent = meta; m.title = meta; tdN.appendChild(m); }
+    tr.appendChild(tdN);
+
+    const tdD = document.createElement("td");
+    tdD.textContent = it.date || "—";
+    if (!it.date) tdD.style.color = "var(--muted)";
+    tr.appendChild(tdD);
+
+    const tdS = document.createElement("td");
+    if (it.source) { const s = document.createElement("span"); s.className = "tag"; s.textContent = it.source; tdS.appendChild(s); }
+    else tdS.textContent = "—";
+    tr.appendChild(tdS);
+
+    const tdA = document.createElement("td"); tdA.className = "num"; tdA.textContent = money(it.amount); tr.appendChild(tdA);
+    const tdP = document.createElement("td"); tdP.className = "num";
+    tdP.textContent = num(it.deposit) ? money(it.deposit) : "—";
+    if (!num(it.deposit)) tdP.style.color = "var(--muted)";
+    tr.appendChild(tdP);
+    const tdB = document.createElement("td"); tdB.className = "num"; tdB.textContent = money(balance(it)); tr.appendChild(tdB);
+
+    const tdT = document.createElement("td");
+    const pill = document.createElement("span");
+    pill.className = "pill " + (it.settled ? "done" : "wait");
+    const pd = document.createElement("i"); pd.className = "pd";
+    pill.appendChild(pd);
+    pill.appendChild(document.createTextNode(it.settled ? "已结" : "未结"));
+    tdT.appendChild(pill); tr.appendChild(tdT);
+
+    const tdX = document.createElement("td"); tdX.className = "num";
+    const acts = document.createElement("div"); acts.className = "row-acts";
+    const bt = document.createElement("button"); bt.className = "btn"; bt.textContent = it.settled ? "撤销结账" : "标记结账";
+    bt.onclick = () => { toggleSettled(it.id); };
+    const be = document.createElement("button"); be.className = "btn"; be.textContent = "编辑";
+    be.onclick = () => openEdit(it.id);
+    acts.appendChild(bt); acts.appendChild(be);
+    tdX.appendChild(acts); tr.appendChild(tdX);
+
+    tb.appendChild(tr);
+  });
+
+  const tot = rows.reduce((s, i) => s + num(i.amount), 0);
+  const dep = rows.reduce((s, i) => s + Math.min(num(i.deposit), num(i.amount)), 0);
+  const bal = rows.reduce((s, i) => s + balance(i), 0);
+  const rec = rows.reduce((s, i) => s + received(i), 0);
+  const tr = document.createElement("tr");
+  const c = (txt, cls, span) => { const td = document.createElement("td"); if (cls) td.className = cls; if (span) td.colSpan = span; td.textContent = txt; return td; };
+  tr.appendChild(c("合计 " + rows.length + " 项", "", 3));
+  tr.appendChild(c(money(tot), "num"));
+  tr.appendChild(c(money(dep), "num"));
+  tr.appendChild(c(money(bal), "num"));
+  tr.appendChild(c("已收 " + money(rec), "", 2));
+  tf.appendChild(tr);
+}
+
+function renderFilters() {
+  const srcs = Array.from(new Set(live().map(i => i.source).filter(Boolean))).sort();
+  const sel = $("#srcSel"), cur = sel.value;
+  sel.textContent = "";
+  const o0 = document.createElement("option"); o0.value = ""; o0.textContent = "全部来源"; sel.appendChild(o0);
+  srcs.forEach(s => { const o = document.createElement("option"); o.value = s; o.textContent = s; sel.appendChild(o); });
+  sel.value = srcs.indexOf(cur) >= 0 ? cur : "";
+  filt.src = sel.value;
+
+  const dl = $("#srcList"); dl.textContent = "";
+  srcs.forEach(s => { const o = document.createElement("option"); o.value = s; dl.appendChild(o); });
+
+  document.querySelectorAll("#tbl thead th").forEach(th => {
+    th.classList.toggle("sorted", th.dataset.k === sort.k);
+    const ar = th.querySelector(".ar");
+    if (ar) ar.textContent = th.dataset.k === sort.k ? (sort.dir > 0 ? "▴" : "▾") : "▾";
+  });
+}
+
+function renderAll() {
+  const list = filtered();
+  const all = live();
+  $("#filterNote").textContent = list.length === all.length
+    ? all.length + " 个项目"
+    : "筛选出 " + list.length + " / " + all.length + " 个项目";
+  $("#brandSub").textContent = "共 " + all.length + " 个项目 · ¥" + money(all.reduce((s, i) => s + num(i.amount), 0));
+  renderFilters();
+  renderKPI(list);
+  renderTable(list);
+  drawTrend(list);
+  drawSrc(list);
+  drawBins(list);
+}
+
+/* ============================================================
+   增删改
+   ============================================================ */
+let editing = null;
+function openEdit(id) {
+  editing = id || null;
+  const it = id ? items.find(x => x.id === id) : null;
+  $("#editTitle").textContent = it ? "编辑项目" : "新增项目";
+  $("#fName").value = it ? it.name : "";
+  $("#fDate").value = it ? (it.date || "") : new Date().toISOString().slice(0, 10);
+  $("#fSource").value = it ? (it.source || "") : "";
+  $("#fAmount").value = it ? num(it.amount) : "";
+  $("#fDeposit").value = it ? num(it.deposit) : 0;
+  $("#fOrder").value = it ? (it.orderNo || "") : "";
+  $("#fSettled").checked = it ? !!it.settled : false;
+  $("#fNote").value = it ? (it.note || "") : "";
+  $("#delBtn").hidden = !it;
+  $("#editErr").hidden = true;
+  updBalance();
+  $("#editDlg").showModal();
+  setTimeout(() => $("#fName").focus(), 40);
+}
+function updBalance() {
+  const a = num($("#fAmount").value), d = num($("#fDeposit").value);
+  $("#fBalance").value = money(Math.max(0, a - d));
+}
+function saveEdit(e) {
+  e.preventDefault();
+  const name = $("#fName").value.trim();
+  const amount = num($("#fAmount").value);
+  const deposit = num($("#fDeposit").value);
+  if (!name) { showEditErr("项目名称不能为空"); return; }
+  if (!(amount >= 0)) { showEditErr("金额必须是数字"); return; }
+  if (deposit > amount) { showEditErr("定金不能大于金额"); return; }
+
+  const data = {
+    name: name,
+    date: $("#fDate").value || "",
+    source: $("#fSource").value.trim(),
+    orderNo: $("#fOrder").value.trim(),
+    amount: amount, deposit: deposit,
+    settled: $("#fSettled").checked,
+    note: $("#fNote").value.trim(),
+    updatedAt: nowISO()
+  };
+  if (editing) {
+    const it = items.find(x => x.id === editing);
+    Object.assign(it, data);
+  } else {
+    items.push(Object.assign({ id: uid(), createdAt: nowISO(), deleted: false }, data));
+  }
+  saveLocal(); renderAll(); queueSync();
+  $("#editDlg").close();
+  toast(editing ? "已保存" : "已新增：" + name);
+  editing = null;
+}
+function showEditErr(m) { const p = $("#editErr"); p.textContent = m; p.hidden = false; }
+
+function delCurrent() {
+  if (!editing) return;
+  const it = items.find(x => x.id === editing);
+  if (!it) return;
+  if (!confirm('确定删除「' + it.name + '」？\n删除会同步到其他设备，可从 GitHub 提交历史里找回。')) return;
+  it.deleted = true; it.updatedAt = nowISO();
+  saveLocal(); renderAll(); queueSync();
+  $("#editDlg").close(); editing = null;
+  toast("已删除");
+}
+function toggleSettled(id) {
+  const it = items.find(x => x.id === id);
+  if (!it) return;
+  it.settled = !it.settled;
+  it.updatedAt = nowISO();
+  saveLocal(); renderAll(); queueSync();
+  toast(it.settled ? "已标记结账：¥" + money(it.amount) : "已撤销结账");
+}
+
+/* ============================================================
+   导入导出
+   ============================================================ */
+function exportJSON() {
+  const payload = { version: 1, exportedAt: nowISO(), count: live().length, items: items };
+  download("账本备份-" + new Date().toISOString().slice(0, 10) + ".json", JSON.stringify(payload, null, 1));
+  toast("已导出 JSON");
+}
+function csvCell(v) {
+  const s = String(v == null ? "" : v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function exportCSV() {
+  const head = ["项目名称", "日期", "来源", "单号", "金额", "定金", "尾款", "已收", "待收", "是否结账", "备注"];
+  const rows = sorted(filtered()).map(it => [
+    it.name, it.date || "", it.source || "", it.orderNo || "",
+    num(it.amount), num(it.deposit), balance(it), received(it), due(it),
+    it.settled ? "已结" : "未结", it.note || ""
+  ]);
+  const csv = "﻿" + [head].concat(rows).map(r => r.map(csvCell).join(",")).join("\r\n");
+  download("项目账本-" + new Date().toISOString().slice(0, 10) + ".csv", csv, "text/csv");
+  toast("已导出 CSV · " + rows.length + " 行");
+}
+function importJSON(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const d = JSON.parse(fr.result);
+      const inc = Array.isArray(d) ? d : d.items;
+      if (!Array.isArray(inc)) throw new Error("文件里找不到 items 数组");
+      const before = live().length;
+      items = mergeItems(inc, items);   // 导入的一方视为较新的本地副本参与合并
+      items = mergeItems(items, []);
+      saveLocal(); renderAll(); queueSync();
+      $("#ioErr").hidden = true;
+      toast("导入完成：" + before + " → " + live().length + " 条");
+      $("#ioDlg").close();
+    } catch (e) {
+      const p = $("#ioErr"); p.textContent = "导入失败：" + e.message; p.hidden = false;
+    }
+  };
+  fr.readAsText(file, "utf-8");
+}
+
+/* ============================================================
+   同步设置对话框
+   ============================================================ */
+function openSync() {
+  const c = sync || {};
+  // 除令牌外全部预填好，打开就只剩粘贴令牌这一步
+  $("#sOwner").value = c.owner || "981182547";
+  $("#sRepo").value = c.repo || "demomoney";
+  $("#sPath").value = c.path || "ledger.json";
+  $("#sBranch").value = c.branch || "main";
+  $("#sToken").value = c.token || "";
+  $("#sAuto").checked = c.auto !== false;
+  $("#syncOff").hidden = !(sync && sync.token);
+  $("#syncErr").hidden = true;
+  $("#syncDlg").showModal();
+  // 光标直接落在唯一需要你填的框里
+  setTimeout(() => { const t = $("#sToken"); if (!t.value) t.focus(); }, 40);
+}
+function readSyncForm() {
+  return {
+    owner: $("#sOwner").value.trim(),
+    repo: $("#sRepo").value.trim(),
+    path: ($("#sPath").value.trim() || "ledger.json").replace(/^\/+/, ""),
+    branch: $("#sBranch").value.trim() || "main",
+    token: $("#sToken").value.trim(),
+    auto: $("#sAuto").checked,
+    lastSync: sync && sync.lastSync
+  };
+}
+function syncErr(m) { const p = $("#syncErr"); p.textContent = m; p.hidden = false; }
+async function testSync() {
+  const cfg = readSyncForm();
+  if (!cfg.owner || !cfg.repo || !cfg.token) { syncErr("用户名、仓库名、令牌都要填"); return; }
+  $("#syncTest").disabled = true; $("#syncTest").textContent = "测试中…";
+  try {
+    const j = await GH.repo(cfg);
+    const warn = [];
+
+    // 仓库真实的默认分支，自动填回表单（分支名写错是 404 的常见原因）
+    if (j.default_branch && j.default_branch !== cfg.branch) {
+      $("#sBranch").value = j.default_branch;
+      warn.push("· 分支名已自动改成 " + j.default_branch + "（你原来填的是 " + cfg.branch + "）");
+    }
+    if (!j.private) {
+      warn.push("⚠ 这是【公开仓库】——收入明细会全网可见。去仓库 Settings 最下面改成 Private 再用。");
+    }
+    if (j.permissions && j.permissions.push === false) {
+      warn.push("⚠ 这个令牌对该仓库【只能读不能写】。去令牌设置里把 Repository permissions 的 Contents 改成 Read and write。");
+    }
+
+    if (warn.length) syncErr(warn.join("\n"));
+    else {
+      $("#syncErr").hidden = true;
+      toast("连接成功 · " + j.full_name + "（私有 · 可写 · 分支 " + j.default_branch + "）", 4000);
+    }
+  } catch (e) {
+    // 仓库报 404 时再探一次身份：能拿到用户 = 令牌有效，只是授权范围里没这个仓库。
+    // 这一步把「令牌坏了」和「令牌看不到仓库」彻底分开，不用再猜。
+    if (e.message.indexOf("404") >= 0) {
+      try {
+        const u = await fetch("https://api.github.com/user", { headers: GH.headers(cfg), cache: "no-store" });
+        if (u.ok) {
+          const me = await u.json();
+          const lines = ["令牌本身是有效的（登录身份：" + me.login + "），但它看不到 " + cfg.owner + "/" + cfg.repo + "。"];
+          if (me.login.toLowerCase() !== cfg.owner.toLowerCase()) {
+            lines.push("⚠ 令牌属于账号 " + me.login + "，和你填的 " + cfg.owner + " 不是同一个 —— 先把用户名改成 " + me.login + "。");
+          } else {
+            // 再问一次「这个令牌到底能看到哪些仓库」——一句话定位授权范围问题
+            let seen = null;
+            try {
+              const rr = await fetch("https://api.github.com/user/repos?per_page=100&affiliation=owner",
+                                     { headers: GH.headers(cfg), cache: "no-store" });
+              if (rr.ok) seen = await rr.json();
+            } catch (e3) { /* 忽略，退回通用提示 */ }
+
+            if (seen && seen.length === 0) {
+              lines.push("而且这个令牌【一个仓库都访问不到】。");
+              lines.push("说明 Repository access 还停在默认的 “Public repositories”（只能看公开仓库），");
+              lines.push("而 " + cfg.repo + " 是私有的，所以被当成不存在。");
+            } else if (seen) {
+              const names = seen.map(x => x.name);
+              lines.push("这个令牌能看到 " + names.length + " 个仓库，但里面没有 " + cfg.repo + "：");
+              lines.push(names.slice(0, 8).join("、") + (names.length > 8 ? " …" : ""));
+            }
+            lines.push("");
+            lines.push("去令牌设置里改这两处：");
+            lines.push("① Repository access → Only select repositories → 勾上 " + cfg.repo);
+            lines.push("② Repository permissions → Contents → Read and write");
+            lines.push("（第 ② 项留在 No access 也会报 404，不是 403，最容易漏）");
+            lines.push("");
+            lines.push("嫌麻烦就改用经典令牌：github.com/settings/tokens → Generate new token (classic) → 只勾 repo 一项。它对所有私有仓库直接生效，没有上面这些设置。");
+          }
+          syncErr(lines.join("\n"));
+          return;
+        }
+      } catch (e2) { /* 探测失败就退回原始提示 */ }
+    }
+    syncErr(e.message);
+  }
+  finally { $("#syncTest").disabled = false; $("#syncTest").textContent = "测试连接"; }
+}
+async function saveSync(e) {
+  e.preventDefault();
+  const cfg = readSyncForm();
+  if (!cfg.owner || !cfg.repo || !cfg.token) { syncErr("用户名、仓库名、令牌都要填"); return; }
+  sync = cfg;
+  store.set(LS_SYNC, JSON.stringify(sync));
+  $("#syncDlg").close();
+  refreshSyncChip();
+  await doSync(false);
+}
+function offSync() {
+  if (!confirm("断开云同步？本机数据会保留，令牌会从这台设备清除。")) return;
+  sync = null;
+  store.del(LS_SYNC);
+  $("#syncDlg").close();
+  refreshSyncChip();
+  toast("已断开云同步");
+}
+
+/* ============================================================
+   事件绑定
+   ============================================================ */
+function bind() {
+  $("#addBtn").onclick = () => openEdit(null);
+  $("#editCancel").onclick = () => $("#editDlg").close();
+  $("#editForm").onsubmit = saveEdit;
+  $("#delBtn").onclick = delCurrent;
+  $("#fAmount").oninput = updBalance;
+  $("#fDeposit").oninput = updBalance;
+  $("#fSettled").onchange = updBalance;
+
+  $("#syncChip").onclick = openSync;
+  $("#syncCancel").onclick = () => $("#syncDlg").close();
+  $("#syncTest").onclick = testSync;
+  $("#syncForm").onsubmit = saveSync;
+  $("#syncOff").onclick = offSync;
+
+  $("#ioBtn").onclick = () => { $("#ioErr").hidden = true; $("#ioDlg").showModal(); };
+  $("#ioClose").onclick = () => $("#ioDlg").close();
+  $("#expJson").onclick = exportJSON;
+  $("#expCsv").onclick = exportCSV;
+  $("#impBtn").onclick = () => $("#impFile").click();
+  $("#impFile").onchange = e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ""; };
+
+  $("#rangeSeg").onclick = e => {
+    const b = e.target.closest("button[data-range]");
+    if (!b) return;
+    filt.range = b.dataset.range;
+    Array.from($("#rangeSeg").children).forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderAll();
+  };
+  $("#srcSel").onchange = e => { filt.src = e.target.value; renderAll(); };
+  $("#stSel").onchange = e => { filt.st = e.target.value; renderAll(); };
+  let qT;
+  $("#q").oninput = e => { clearTimeout(qT); qT = setTimeout(() => { filt.q = e.target.value; renderAll(); }, 180); };
+
+  document.querySelectorAll("#tbl thead th[data-k]").forEach(th => {
+    th.onclick = () => {
+      const k = th.dataset.k;
+      if (sort.k === k) sort.dir = -sort.dir;
+      else { sort.k = k; sort.dir = (k === "name" || k === "source") ? 1 : -1; }
+      renderAll();
+    };
+  });
+
+  $("#themeBtn").onclick = () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    const next = cur === "dark" ? "light" : cur === "light" ? "" : "dark";
+    if (next) document.documentElement.setAttribute("data-theme", next);
+    else document.documentElement.removeAttribute("data-theme");
+    store.set(LS_THEME, next);
+    setTimeout(renderAll, 30);
+    toast(next === "dark" ? "深色" : next === "light" ? "浅色" : "跟随系统");
+  };
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "n" && !e.ctrlKey && !e.metaKey && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+      e.preventDefault(); openEdit(null);
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); if (sync && sync.token) doSync(false); }
+  });
+
+  let rT;
+  window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(renderAll, 140); });
+  window.addEventListener("beforeunload", e => {
+    if (syncTimer) { e.preventDefault(); e.returnValue = ""; }
+  });
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+(function init() {
+  try {
+    const th = store.get(LS_THEME);
+    if (th) document.documentElement.setAttribute("data-theme", th);
+
+    const fresh = !store.get(LS_DATA);
+    items = loadLocal();
+    sync = loadSync();
+    bind();
+    refreshSyncChip();
+    renderAll();
+
+    if (!storageOK) {
+      setTimeout(() => toast("浏览器禁止了本地存储，本次改动不会留存 —— 请把文件保存到本地磁盘后再打开，或开启云同步", 8000), 500);
+    } else if (sync && sync.token) {
+      doSync(true);
+    } else if (fresh) {
+      saveLocal();
+      const n = live().length;
+      setTimeout(() => toast(n
+        ? "已载入 " + n + " 个项目 · 点右上角「仅本机」可开启云同步"
+        : "空账本 · 点右上角「仅本机」连上你的 GitHub 私有仓库，或用「备份 → 导入」载入数据", 7000), 600);
+    }
+  } catch (err) {
+    console.error(err);
+    const b = document.createElement("div");
+    b.style.cssText = "margin:20px;padding:16px;border:1px solid var(--crit);border-radius:10px;color:var(--crit);font-size:13px;white-space:pre-wrap";
+    b.textContent = "页面初始化失败：" + (err && err.message ? err.message : err) + " —— 请把这段信息发给我。";
+    document.querySelector("main").prepend(b);
+  }
+})();
+</script>
+</body>
+</html>

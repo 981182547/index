@@ -14,7 +14,7 @@
   --s1:#2a78d6; --s2:#eb6834;
   --o1:#86b6ef; --o2:#5598e7; --o3:#2a78d6; --o4:#184f95;
   --track:#cde2fb;
-  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --good-text:#006300;
   --shadow:0 1px 2px rgba(11,11,11,.04),0 4px 14px rgba(11,11,11,.05);
   --radius:12px;
 }
@@ -27,7 +27,7 @@
     --hover:rgba(255,255,255,.05); --active:rgba(255,255,255,.09);
     --s1:#3987e5; --s2:#d95926;
     --o1:#184f95; --o2:#256abf; --o3:#3987e5; --o4:#86b6ef;
-    --track:#184f95;
+    --track:#184f95; --good-text:#0ca30c;
     --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
   }
 }
@@ -39,7 +39,7 @@
   --hover:rgba(255,255,255,.05); --active:rgba(255,255,255,.09);
   --s1:#3987e5; --s2:#d95926;
   --o1:#184f95; --o2:#256abf; --o3:#3987e5; --o4:#86b6ef;
-  --track:#184f95;
+  --track:#184f95; --good-text:#0ca30c;
   --shadow:0 1px 2px rgba(0,0,0,.5),0 4px 14px rgba(0,0,0,.35);
 }
 
@@ -137,6 +137,48 @@ select:focus,input:focus,textarea:focus{outline:2px solid var(--s1);outline-offs
 .tile.hero .value{font-size:46px;line-height:1.1;letter-spacing:-1.4px;margin:2px 0 1px}
 .tile.hero .label{font-size:13px;color:var(--text-2)}
 .cur{font-size:.6em;font-weight:500;color:var(--text-2);margin-right:2px}
+
+/* ---------- 环比 / 迷你趋势 / 表单分节 ---------- */
+.tile .delta{font-size:11.5px;display:inline-flex;align-items:center;gap:4px;color:var(--muted)}
+.tile .delta.up{color:var(--good-text)}
+.tile .delta.down{color:var(--crit)}
+.tile .delta .ar{font-size:10px}
+.tile .delta .vs{color:var(--muted)}
+.spark{width:100%;display:block;margin-top:8px;overflow:visible}
+.seg.sm{margin-left:auto}
+.seg.sm button{padding:4px 10px;font-size:12px}
+.sub-head{
+  font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.4px;
+  border-top:1px solid var(--border);padding-top:12px;margin:4px 0 12px;
+}
+.fine{font-size:11.5px;color:var(--muted);margin:-4px 0 12px;line-height:1.55}
+.fld.off{opacity:.45;pointer-events:none}
+
+/* ---------- 手机端：表格转卡片 ---------- */
+@media (max-width:620px){
+  table{min-width:0}
+  thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  tbody,tbody tr,tbody td{display:block;width:100%}
+  tbody tr{
+    border-bottom:1px solid var(--border);padding:12px 14px 10px;
+    display:grid;grid-template-columns:1fr auto;gap:2px 10px;
+  }
+  tbody tr:hover{background:transparent}
+  tbody td{border:0;padding:0}
+  td.name{grid-column:1/-1;max-width:none;min-width:0;margin-bottom:6px}
+  td.name .n{white-space:normal;font-weight:600;font-size:13.5px;line-height:1.4}
+  td[data-label]{display:flex;align-items:baseline;gap:8px;font-size:12.5px;padding:1px 0}
+  td[data-label]::before{
+    content:attr(data-label);color:var(--muted);font-size:11.5px;min-width:34px;
+  }
+  td.num{text-align:left;justify-content:flex-start}
+  td.acts{grid-column:1/-1;margin-top:9px}
+  .row-acts{justify-content:stretch;gap:8px}
+  .row-acts .btn{flex:1;padding:7px 0;text-align:center}
+  tfoot td{display:block;width:100%}
+  tfoot tr{display:flex;flex-wrap:wrap;gap:4px 16px;padding:12px 14px}
+  .tbl-wrap{overflow-x:visible}
+}
 
 /* ---------- meter ---------- */
 .meter-card{padding:13px 16px}
@@ -309,11 +351,17 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
       <span class="label">已收金额</span>
       <span class="value" id="kReceived">—</span>
       <span class="foot" id="kReceivedFoot"></span>
+      <svg class="spark" id="kSpark" height="34" aria-hidden="true"></svg>
+      <span class="foot" id="kSparkFoot"></span>
     </div>
-    <div class="card tile"><span class="label">签单总额</span><span class="value" id="kTotal">—</span><span class="foot" id="kTotalFoot"></span></div>
+    <div class="card tile">
+      <span class="label">本月进账</span>
+      <span class="value" id="kMonth">—</span>
+      <span class="delta" id="kMonthDelta"></span>
+    </div>
     <div class="card tile"><span class="label">待收金额</span><span class="value" id="kDue">—</span><span class="foot" id="kDueFoot"></span></div>
+    <div class="card tile"><span class="label">签单总额</span><span class="value" id="kTotal">—</span><span class="foot" id="kTotalFoot"></span></div>
     <div class="card tile"><span class="label">已结账项目</span><span class="value" id="kDone">—</span><span class="foot" id="kDoneFoot"></span></div>
-    <div class="card tile"><span class="label">平均单价</span><span class="value" id="kAvg">—</span><span class="foot" id="kAvgFoot"></span></div>
   </section>
 
   <section class="card meter-card">
@@ -327,11 +375,15 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
 
   <section class="charts">
     <div class="card chart wide">
-      <div class="chart-head"><h3>月度签单与回款</h3><span class="hint">按项目日期归月</span></div>
-      <div class="legend">
-        <span><i style="background:var(--s1)"></i>已收</span>
-        <span><i style="background:var(--s2)"></i>待收</span>
+      <div class="chart-head">
+        <h3 id="trendTitle">月度进账</h3>
+        <span class="hint" id="trendHint">钱实际到账的月份</span>
+        <div class="seg sm" id="trendSeg">
+          <button data-mode="cash" aria-pressed="true">按到账日期</button>
+          <button data-mode="sign">按项目日期</button>
+        </div>
       </div>
+      <div class="legend" id="trendLegend"></div>
       <svg class="plot" id="chTrend" height="230" role="img" aria-label="月度签单与回款柱状图"></svg>
       <p class="note" id="trendNote"></p>
     </div>
@@ -342,7 +394,7 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
     </div>
 
     <div class="card chart">
-      <div class="chart-head"><h3>单价分布</h3><span class="hint">项目数量</span></div>
+      <div class="chart-head"><h3>单价分布</h3><span class="hint" id="binHint">项目数量</span></div>
       <svg class="plot" id="chBin" height="200" role="img" aria-label="项目单价区间分布柱状图"></svg>
     </div>
   </section>
@@ -382,13 +434,20 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
       </div>
       <div class="grid2">
         <div class="fld"><label for="fAmount">金额 (元) *</label><input type="number" id="fAmount" required min="0" step="1" inputmode="decimal"></div>
-        <div class="fld"><label for="fDeposit">定金 (元)</label><input type="number" id="fDeposit" min="0" step="1" value="0" inputmode="decimal"></div>
-      </div>
-      <div class="grid2">
-        <div class="fld"><label for="fBalance">尾款 (元) · 自动 = 金额 − 定金</label><input type="text" id="fBalance" class="ro" readonly tabindex="-1"></div>
         <div class="fld"><label for="fOrder">单号</label><input type="text" id="fOrder" maxlength="60"></div>
       </div>
+
+      <div class="sub-head">收款</div>
+      <div class="grid2">
+        <div class="fld"><label for="fDeposit">定金 (元)</label><input type="number" id="fDeposit" min="0" step="1" value="0" inputmode="decimal"></div>
+        <div class="fld"><label for="fDepositDate">定金到账日期</label><input type="date" id="fDepositDate"></div>
+      </div>
       <label class="check"><input type="checkbox" id="fSettled"><span>已结账（尾款已收到）</span></label>
+      <div class="grid2">
+        <div class="fld"><label for="fBalance">尾款 (元) · 自动 = 金额 − 定金</label><input type="text" id="fBalance" class="ro" readonly tabindex="-1"></div>
+        <div class="fld" id="fldSettledDate"><label for="fSettledDate">尾款到账日期</label><input type="date" id="fSettledDate"></div>
+      </div>
+      <p class="fine" id="payHint"></p>
       <div class="fld"><label for="fNote">备注</label><textarea id="fNote" maxlength="500"></textarea></div>
       <p class="err-line" id="editErr" hidden></p>
     </div>
@@ -517,11 +576,53 @@ function download(name, text, mime) {
 const received = it => it.settled ? num(it.amount) : Math.min(num(it.deposit), num(it.amount));
 const balance  = it => Math.max(0, num(it.amount) - num(it.deposit));
 const due      = it => num(it.amount) - received(it);
+const ym       = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+const prevYm   = k => { const y = +k.slice(0,4), m = +k.slice(5,7); return m === 1 ? (y-1)+"-12" : y+"-"+String(m-1).padStart(2,"0"); };
+
+// 把每一笔钱摊到「实际到账」的月份。没填到账日期就退回项目日期（并记为不精确）。
+function payments(list) {
+  const out = []; let unknown = 0;
+  list.forEach(it => {
+    const amt = num(it.amount), dep = Math.min(num(it.deposit), amt);
+    if (dep > 0) {
+      const d = it.depositDate || it.date;
+      if (d) out.push({ m: d.slice(0, 7), v: dep, kind: "定金", it: it, exact: !!it.depositDate });
+      else unknown += dep;
+    }
+    if (it.settled) {
+      const rest = amt - dep;
+      if (rest > 0) {
+        const d = it.settledDate || it.date;
+        if (d) out.push({ m: d.slice(0, 7), v: rest, kind: dep > 0 ? "尾款" : "全款", it: it, exact: !!it.settledDate });
+        else unknown += rest;
+      }
+    }
+  });
+  return { rows: out, unknown: unknown };
+}
+function cashByMonth(list) {
+  const p = payments(list), by = new Map();
+  p.rows.forEach(x => {
+    if (!by.has(x.m)) by.set(x.m, { m: x.m, v: 0, n: 0, exact: 0 });
+    const o = by.get(x.m); o.v += x.v; o.n++; if (x.exact) o.exact++;
+  });
+  return {
+    months: Array.from(by.values()).sort((a, b) => a.m < b.m ? -1 : 1),
+    unknown: p.unknown,
+    exact: p.rows.filter(x => x.exact).length,
+    total: p.rows.length
+  };
+}
+const monthCash = (list, k) => {
+  const f = cashByMonth(list).months.filter(o => o.m === k)[0];
+  return f ? f.v : 0;
+};
 
 /* ---------- 状态 ---------- */
 let items = [];
 let sync = null;
 let sort = { k: "date", dir: -1 };
+let trendMode = "cash";   // cash = 按到账日期(真实现金流) / sign = 按项目日期
 let filt = { range: "all", src: "", st: "", q: "" };
 let syncTimer = null;
 
@@ -839,78 +940,109 @@ function hookTip(node, title, rows, total) {
    图 1 · 月度签单与回款（堆叠柱）
    ============================================================ */
 function drawTrend(list) {
-  const svg = $("#chTrend");
-  clear(svg);
-  const W = svg.clientWidth || svg.parentNode.clientWidth - 32;
-  const H = 230;
+  $("#trendLegend").innerHTML = "";
+  if (trendMode === "cash") drawCash(list); else drawSign(list);
+}
+
+/* --- 按到账日期：真实现金流，单序列 --- */
+function drawCash(list) {
+  const svg = $("#chTrend"); clear(svg);
+  const W = svg.clientWidth || svg.parentNode.clientWidth - 32, H = 230;
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
 
-  const dated = list.filter(it => it.date);
-  const undated = list.length - dated.length;
+  const cf = cashByMonth(list);
+  const note = [];
+  if (cf.unknown > 0) note.push("¥" + money(cf.unknown) + " 无任何日期，未计入");
+  if (cf.total > cf.exact) note.push((cf.total - cf.exact) + " 笔没填到账日期，暂按项目日期估算");
+  $("#trendNote").textContent = note.join(" · ");
+
+  if (!cf.months.length) {
+    axisText(svg, W / 2, H / 2, "所选范围内还没有收到钱", "middle", css("--muted"), 13);
+    return;
+  }
+  const months = cf.months;
+  const padL = 52, padR = 14, padT = 16, padB = 34;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const ticks = niceTicks(Math.max.apply(null, months.map(o => o.v)), 4), top = ticks[ticks.length - 1];
+  const yOf = v => padT + plotH - (v / top) * plotH;
+
+  ticks.forEach(t => {
+    const y = yOf(t);
+    svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y,
+                    stroke: t === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
+    axisText(svg, padL - 8, y, money(t), "end");
+  });
+
+  const band = plotW / months.length, bw = Math.min(24, band * 0.5), yBase = padT + plotH;
+  months.forEach((o, i) => {
+    const cx = padL + band * i + band / 2, x = cx - bw / 2, h = (o.v / top) * plotH;
+    if (h > 0) svgEl("path", { d: barV(x, yBase - h, bw, h, 4), fill: css("--s1") }, svg);
+    axisText(svg, cx, yOf(o.v) - 11, money(o.v), "middle", css("--text-2"), 11);
+    axisText(svg, cx, yBase + 17, o.m.replace("-", "/"), "middle", css("--muted"), 11);
+
+    const hit = svgEl("rect", { x: cx - Math.max(24, band * 0.9) / 2, y: padT,
+                                width: Math.max(24, band * 0.9), height: plotH,
+                                fill: "transparent", style: "cursor:pointer" }, svg);
+    const rows = [{ name: "进账", value: "¥" + money(o.v), color: css("--s1") },
+                  { name: "笔数", value: o.n + " 笔", color: "" }];
+    if (o.exact < o.n) rows.push({ name: "其中估算", value: (o.n - o.exact) + " 笔", color: "" });
+    hookTip(hit, o.m.replace("-", " 年 ") + " 月", rows);
+  });
+}
+
+/* --- 按项目日期：签单额拆已收/待收，堆叠双序列 --- */
+function drawSign(list) {
+  const svg = $("#chTrend"); clear(svg);
+  const W = svg.clientWidth || svg.parentNode.clientWidth - 32, H = 230;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  const lg = $("#trendLegend");
+  lg.innerHTML = '<span><i style="background:var(--s1)"></i>已收</span>' +
+                 '<span><i style="background:var(--s2)"></i>待收</span>';
+
+  const dated = list.filter(it => it.date), undated = list.length - dated.length;
   $("#trendNote").textContent = undated
-    ? undated + " 个项目没有填日期，未计入本图（金额 ¥" + money(list.filter(i => !i.date).reduce((s, i) => s + num(i.amount), 0)) + "）"
+    ? undated + " 个项目没有日期，未计入（金额 ¥" +
+      money(list.filter(i => !i.date).reduce((s2, i) => s2 + num(i.amount), 0)) + "）"
     : "";
 
   if (!dated.length) {
     axisText(svg, W / 2, H / 2, "所选范围内没有带日期的项目", "middle", css("--muted"), 13);
     return;
   }
-
   const by = new Map();
   dated.forEach(it => {
     const m = it.date.slice(0, 7);
     if (!by.has(m)) by.set(m, { m: m, rec: 0, due: 0, n: 0 });
-    const o = by.get(m);
-    o.rec += received(it); o.due += due(it); o.n++;
+    const o = by.get(m); o.rec += received(it); o.due += due(it); o.n++;
   });
   const months = Array.from(by.values()).sort((a, b) => a.m < b.m ? -1 : 1);
 
   const padL = 52, padR = 14, padT = 16, padB = 34;
   const plotW = W - padL - padR, plotH = H - padT - padB;
-  const maxV = Math.max.apply(null, months.map(o => o.rec + o.due));
-  const ticks = niceTicks(maxV, 4), top = ticks[ticks.length - 1];
+  const ticks = niceTicks(Math.max.apply(null, months.map(o => o.rec + o.due)), 4), top = ticks[ticks.length - 1];
   const yOf = v => padT + plotH - (v / top) * plotH;
 
   ticks.forEach(t => {
     const y = yOf(t);
-    svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: t === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
+    svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y,
+                    stroke: t === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
     axisText(svg, padL - 8, y, money(t), "end");
   });
 
-  const band = plotW / months.length;
-  const bw = Math.min(24, band * 0.5);
-  const GAP = 2;
-
+  const band = plotW / months.length, bw = Math.min(24, band * 0.5), GAP = 2, yBase = padT + plotH;
   months.forEach((o, i) => {
     const cx = padL + band * i + band / 2, x = cx - bw / 2;
     const totalV = o.rec + o.due;
-    const hRec = (o.rec / top) * plotH;
-    let hDue = (o.due / top) * plotH;
-    const yBase = padT + plotH;
-
-    // 已收（底部，贴基线，方角；若无待收则顶部圆角）
-    if (hRec > 0) {
-      svgEl("path", {
-        d: o.due > 0 ? barV(x, yBase - hRec, bw, hRec, 0) : barV(x, yBase - hRec, bw, hRec, 4),
-        fill: css("--s1")
-      }, svg);
-    }
-    // 待收（顶部，圆角，与下段留 2px 表面间隙）
-    if (hDue > 0) {
-      const yDue = yBase - hRec - GAP - hDue;
-      svgEl("path", { d: barV(x, yDue, bw, hDue, 4), fill: css("--s2") }, svg);
-    }
-
-    // 列合计直接标注（月份少，选择性标注不构成噪声）
+    const hRec = (o.rec / top) * plotH, hDue = (o.due / top) * plotH;
+    if (hRec > 0) svgEl("path", { d: barV(x, yBase - hRec, bw, hRec, o.due > 0 ? 0 : 4), fill: css("--s1") }, svg);
+    if (hDue > 0) svgEl("path", { d: barV(x, yBase - hRec - GAP - hDue, bw, hDue, 4), fill: css("--s2") }, svg);
     axisText(svg, cx, yOf(totalV) - 11, money(totalV), "middle", css("--text-2"), 11);
-    axisText(svg, cx, padT + plotH + 17, o.m.replace("-", "/"), "middle", css("--muted"), 11);
+    axisText(svg, cx, yBase + 17, o.m.replace("-", "/"), "middle", css("--muted"), 11);
 
-    // 命中区：整列，含 2px 间隙，最小 24px
-    const hit = svgEl("rect", {
-      x: cx - Math.max(24, band * 0.9) / 2, y: padT,
-      width: Math.max(24, band * 0.9), height: plotH,
-      fill: "transparent", style: "cursor:pointer"
-    }, svg);
+    const hit = svgEl("rect", { x: cx - Math.max(24, band * 0.9) / 2, y: padT,
+                                width: Math.max(24, band * 0.9), height: plotH,
+                                fill: "transparent", style: "cursor:pointer" }, svg);
     hookTip(hit, o.m.replace("-", " 年 ") + " 月 · " + o.n + " 个项目", [
       { name: "已收", value: "¥" + money(o.rec), color: css("--s1") },
       { name: "待收", value: "¥" + money(o.due), color: css("--s2") }
@@ -992,7 +1124,13 @@ function drawBins(list) {
       if (a > BINS[i].lo && a <= BINS[i].hi) { cnt[i].n++; cnt[i].sum += a; break; }
     }
   });
-  if (!list.length) { axisText(svg, W / 2, H / 2, "没有数据", "middle", css("--muted"), 13); return; }
+  if (!list.length) {
+    $("#binHint").textContent = "项目数量";
+    axisText(svg, W / 2, H / 2, "没有数据", "middle", css("--muted"), 13); return;
+  }
+  const amts = list.map(i => num(i.amount));
+  $("#binHint").textContent = "平均 ¥" + money(amts.reduce((a, b) => a + b, 0) / amts.length) +
+                              " · 中位数 ¥" + money(median(amts));
 
   const padL = 34, padR = 12, padT = 20, padB = 34;
   const plotW = W - padL - padR, plotH = H - padT - padB;
@@ -1030,12 +1168,11 @@ function drawBins(list) {
    KPI + 表格
    ============================================================ */
 function renderKPI(list) {
-  const total = list.reduce((s, i) => s + num(i.amount), 0);
-  const rec = list.reduce((s, i) => s + received(i), 0);
-  const dueV = total - rec;
-  const done = list.filter(i => i.settled).length;
-  const avg = list.length ? total / list.length : 0;
-  const pct = total > 0 ? rec / total * 100 : 0;
+  const total = list.reduce((s2, i) => s2 + num(i.amount), 0);
+  const rec   = list.reduce((s2, i) => s2 + received(i), 0);
+  const dueV  = total - rec;
+  const done  = list.filter(i => i.settled).length;
+  const pct   = total > 0 ? rec / total * 100 : 0;
 
   $("#kReceived").innerHTML = '<span class="cur">¥</span>' + money(rec);
   $("#kReceivedFoot").textContent = total > 0 ? "占签单额 " + pct.toFixed(1) + "%" : "";
@@ -1045,13 +1182,57 @@ function renderKPI(list) {
   $("#kDueFoot").textContent = (list.length - done) + " 个未结账";
   $("#kDone").textContent = done + " / " + list.length;
   $("#kDoneFoot").textContent = list.length ? (done / list.length * 100).toFixed(0) + "% 已结" : "";
-  $("#kAvg").innerHTML = '<span class="cur">¥</span>' + money(avg);
-  $("#kAvgFoot").textContent = list.length ? "中位数 ¥" + money(median(list.map(i => num(i.amount)))) : "";
+
+  // 本月进账 + 环比：按钱实际到账的月份算，不是按项目日期
+  const cf = cashByMonth(list), thisK = ym(new Date()), lastK = prevYm(thisK);
+  const cur = monthCash(list, thisK), prev = monthCash(list, lastK);
+  $("#kMonth").innerHTML = '<span class="cur">¥</span>' + money(cur);
+  renderDelta($("#kMonthDelta"), cur, prev, cf);
+  drawSpark($("#kSpark"), cf.months, thisK);
+  $("#kSparkFoot").textContent = cf.months.length > 1
+    ? "近 " + Math.min(12, cf.months.length) + " 个月进账走势"
+    : "";
 
   $("#meterFill").style.width = Math.max(0, Math.min(100, pct)) + "%";
   $("#meterPct").textContent = "¥" + money(rec) + " / ¥" + money(total) + " · " + pct.toFixed(1) + "%";
   $("#meterSub").textContent = dueV > 0 ? "还有 ¥" + money(dueV) + " 没收到" : (total > 0 ? "全部结清" : "");
 }
+
+// 环比：箭头 + 数值 + 「vs 上月」标签，颜色只是辅助，不单独承载含义
+function renderDelta(node, cur, prev, cf) {
+  node.textContent = ""; node.className = "delta";
+  if (!cf.months.length) { node.textContent = "本月还没有进账"; return; }
+  if (prev === 0 && cur === 0) { node.textContent = "本月和上月都没有进账"; return; }
+  if (prev === 0) { node.classList.add("up"); node.textContent = "▲ 上月无进账"; return; }
+  const diff = cur - prev, up = diff > 0;
+  if (diff === 0) { node.textContent = "与上月持平"; return; }
+  node.classList.add(up ? "up" : "down");
+  const ar = document.createElement("span"); ar.className = "ar"; ar.textContent = up ? "▲" : "▼";
+  const v  = document.createElement("span"); v.textContent = Math.abs(diff / prev * 100).toFixed(0) + "%";
+  const vs = document.createElement("span"); vs.className = "vs";
+  vs.textContent = "vs 上月 ¥" + money(prev);
+  node.appendChild(ar); node.appendChild(v); node.appendChild(vs);
+}
+
+// 迷你走势：本月用强调色，其余用弱化灰
+function drawSpark(svg, months, curKey) {
+  clear(svg);
+  const data = months.slice(-12);
+  const W = svg.clientWidth || 200, H = 34;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  if (data.length < 2) return;
+  const max = Math.max.apply(null, data.map(o => o.v)) || 1;
+  const band = W / data.length, bw = Math.max(2, Math.min(10, band * 0.55));
+  data.forEach((o, i) => {
+    const h = Math.max(1, (o.v / max) * (H - 4));
+    const x = band * i + (band - bw) / 2;
+    svgEl("path", {
+      d: barV(x, H - h, bw, h, 2),
+      fill: o.m === curKey ? css("--s1") : css("--axis")
+    }, svg);
+  });
+}
+
 function median(a) {
   if (!a.length) return 0;
   const s = a.slice().sort((x, y) => x - y), m = s.length >> 1;
@@ -1083,31 +1264,44 @@ function renderTable(list) {
     tr.appendChild(tdN);
 
     const tdD = document.createElement("td");
+    tdD.dataset.label = "日期";
     tdD.textContent = it.date || "—";
     if (!it.date) tdD.style.color = "var(--muted)";
     tr.appendChild(tdD);
 
     const tdS = document.createElement("td");
-    if (it.source) { const s = document.createElement("span"); s.className = "tag"; s.textContent = it.source; tdS.appendChild(s); }
+    tdS.dataset.label = "来源";
+    if (it.source) { const sp = document.createElement("span"); sp.className = "tag"; sp.textContent = it.source; tdS.appendChild(sp); }
     else tdS.textContent = "—";
     tr.appendChild(tdS);
 
-    const tdA = document.createElement("td"); tdA.className = "num"; tdA.textContent = money(it.amount); tr.appendChild(tdA);
-    const tdP = document.createElement("td"); tdP.className = "num";
+    const tdA = document.createElement("td"); tdA.className = "num"; tdA.dataset.label = "金额";
+    tdA.textContent = money(it.amount); tr.appendChild(tdA);
+    const tdP = document.createElement("td"); tdP.className = "num"; tdP.dataset.label = "定金";
     tdP.textContent = num(it.deposit) ? money(it.deposit) : "—";
     if (!num(it.deposit)) tdP.style.color = "var(--muted)";
     tr.appendChild(tdP);
-    const tdB = document.createElement("td"); tdB.className = "num"; tdB.textContent = money(balance(it)); tr.appendChild(tdB);
+    const tdB = document.createElement("td"); tdB.className = "num"; tdB.dataset.label = "尾款";
+    tdB.textContent = money(balance(it)); tr.appendChild(tdB);
 
     const tdT = document.createElement("td");
+    tdT.dataset.label = "结账";
     const pill = document.createElement("span");
     pill.className = "pill " + (it.settled ? "done" : "wait");
     const pd = document.createElement("i"); pd.className = "pd";
     pill.appendChild(pd);
     pill.appendChild(document.createTextNode(it.settled ? "已结" : "未结"));
-    tdT.appendChild(pill); tr.appendChild(tdT);
+    tdT.appendChild(pill);
+    // 钱哪天到的，就近显示
+    const payd = it.settled ? it.settledDate : (num(it.deposit) ? it.depositDate : "");
+    if (payd) {
+      const dd = document.createElement("span"); dd.className = "m";
+      dd.textContent = payd + " 到账";
+      tdT.appendChild(dd);
+    }
+    tr.appendChild(tdT);
 
-    const tdX = document.createElement("td"); tdX.className = "num";
+    const tdX = document.createElement("td"); tdX.className = "num acts";
     const acts = document.createElement("div"); acts.className = "row-acts";
     const bt = document.createElement("button"); bt.className = "btn"; bt.textContent = it.settled ? "撤销结账" : "标记结账";
     bt.onclick = () => { toggleSettled(it.id); };
@@ -1180,6 +1374,8 @@ function openEdit(id) {
   $("#fSource").value = it ? (it.source || "") : "";
   $("#fAmount").value = it ? num(it.amount) : "";
   $("#fDeposit").value = it ? num(it.deposit) : 0;
+  $("#fDepositDate").value = it ? (it.depositDate || "") : "";
+  $("#fSettledDate").value = it ? (it.settledDate || "") : "";
   $("#fOrder").value = it ? (it.orderNo || "") : "";
   $("#fSettled").checked = it ? !!it.settled : false;
   $("#fNote").value = it ? (it.note || "") : "";
@@ -1190,8 +1386,21 @@ function openEdit(id) {
   setTimeout(() => $("#fName").focus(), 40);
 }
 function updBalance() {
-  const a = num($("#fAmount").value), d = num($("#fDeposit").value);
+  const a = num($("#fAmount").value), d = Math.min(num($("#fDeposit").value), a);
+  const settled = $("#fSettled").checked;
   $("#fBalance").value = money(Math.max(0, a - d));
+  // 尾款到账日期只在「已结账」时有意义
+  $("#fldSettledDate").classList.toggle("off", !settled);
+  if (!settled) $("#fSettledDate").value = "";
+  else if (!$("#fSettledDate").value) $("#fSettledDate").value = new Date().toISOString().slice(0, 10);
+
+  const got = settled ? a : d;
+  const bits = [];
+  if (d > 0) bits.push("定金 ¥" + money(d) + ($("#fDepositDate").value ? " (" + $("#fDepositDate").value + ")" : " (日期未填)"));
+  if (settled && a - d > 0) bits.push("尾款 ¥" + money(a - d) + ($("#fSettledDate").value ? " (" + $("#fSettledDate").value + ")" : ""));
+  $("#payHint").textContent = got > 0
+    ? "已收 ¥" + money(got) + "，待收 ¥" + money(a - got) + (bits.length ? " —— " + bits.join("，") : "")
+    : (a > 0 ? "一分未收，待收 ¥" + money(a) : "");
 }
 function saveEdit(e) {
   e.preventDefault();
@@ -1208,6 +1417,8 @@ function saveEdit(e) {
     source: $("#fSource").value.trim(),
     orderNo: $("#fOrder").value.trim(),
     amount: amount, deposit: deposit,
+    depositDate: deposit > 0 ? ($("#fDepositDate").value || "") : "",
+    settledDate: $("#fSettled").checked ? ($("#fSettledDate").value || "") : "",
     settled: $("#fSettled").checked,
     note: $("#fNote").value.trim(),
     updatedAt: nowISO()
@@ -1239,6 +1450,7 @@ function toggleSettled(id) {
   const it = items.find(x => x.id === id);
   if (!it) return;
   it.settled = !it.settled;
+  it.settledDate = it.settled ? new Date().toISOString().slice(0, 10) : "";
   it.updatedAt = nowISO();
   saveLocal(); renderAll(); queueSync();
   toast(it.settled ? "已标记结账：¥" + money(it.amount) : "已撤销结账");
@@ -1257,11 +1469,13 @@ function csvCell(v) {
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 function exportCSV() {
-  const head = ["项目名称", "日期", "来源", "单号", "金额", "定金", "尾款", "已收", "待收", "是否结账", "备注"];
+  const head = ["项目名称", "项目日期", "来源", "单号", "金额",
+                "定金", "定金到账日期", "尾款", "尾款到账日期",
+                "已收", "待收", "是否结账", "备注"];
   const rows = sorted(filtered()).map(it => [
-    it.name, it.date || "", it.source || "", it.orderNo || "",
-    num(it.amount), num(it.deposit), balance(it), received(it), due(it),
-    it.settled ? "已结" : "未结", it.note || ""
+    it.name, it.date || "", it.source || "", it.orderNo || "", num(it.amount),
+    num(it.deposit), it.depositDate || "", balance(it), it.settledDate || "",
+    received(it), due(it), it.settled ? "已结" : "未结", it.note || ""
   ]);
   const csv = "﻿" + [head].concat(rows).map(r => r.map(csvCell).join(",")).join("\r\n");
   download("项目账本-" + new Date().toISOString().slice(0, 10) + ".csv", csv, "text/csv");
@@ -1419,6 +1633,8 @@ function bind() {
   $("#fAmount").oninput = updBalance;
   $("#fDeposit").oninput = updBalance;
   $("#fSettled").onchange = updBalance;
+  $("#fDepositDate").onchange = updBalance;
+  $("#fSettledDate").onchange = updBalance;
 
   $("#syncChip").onclick = openSync;
   $("#syncCancel").onclick = () => $("#syncDlg").close();
@@ -1438,6 +1654,16 @@ function bind() {
     if (!b) return;
     filt.range = b.dataset.range;
     Array.from($("#rangeSeg").children).forEach(x => x.setAttribute("aria-pressed", x === b));
+    renderAll();
+  };
+  $("#trendSeg").onclick = e => {
+    const b = e.target.closest("button[data-mode]");
+    if (!b) return;
+    trendMode = b.dataset.mode;
+    Array.from($("#trendSeg").children).forEach(x => x.setAttribute("aria-pressed", x === b));
+    const cash = trendMode === "cash";
+    $("#trendTitle").textContent = cash ? "月度进账" : "月度签单与回款";
+    $("#trendHint").textContent = cash ? "钱实际到账的月份" : "按项目日期归月";
     renderAll();
   };
   $("#srcSel").onchange = e => { filt.src = e.target.value; renderAll(); };

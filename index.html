@@ -315,8 +315,9 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
   body{background:#fff}
 }
 </style>
+<link rel="stylesheet" href="./mobile.css">
 </head>
-<body>
+<body data-mobile-view="ledger">
 
 <header class="top">
   <div class="top-in">
@@ -331,11 +332,12 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
     <button class="btn icon ghost" id="themeBtn" title="切换深浅色">◐</button>
     <button class="btn ghost" id="ioBtn">备份</button>
     <button class="btn primary" id="addBtn">+ 新增项目</button>
+    <button class="btn ghost mobile-only more-button" id="mobileMore" aria-label="打开更多设置">•••</button>
   </div>
 </header>
 
 <main>
-  <section class="card filters">
+  <section class="card filters" id="filters">
     <div class="seg" id="rangeSeg">
       <button data-range="all" aria-pressed="true">全部</button>
       <button data-range="year">今年</button>
@@ -348,14 +350,16 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
       <option value="1">已结账</option>
       <option value="0">未结账</option>
     </select>
-    <input type="text" class="search" id="q" placeholder="搜索项目名 / 单号 / 备注…">
+    <input type="text" class="search" id="q" placeholder="搜索项目、来源或备注" aria-label="搜索项目、来源或备注">
+    <button class="btn mobile-only" id="filterToggle" aria-expanded="false" aria-controls="rangeSeg srcSel stSel mobileSort">筛选</button>
+    <select class="mobile-only" id="mobileSort" aria-label="项目排序"><option value="date">最近项目优先</option><option value="amount">项目金额从高到低</option><option value="due">待收金额从高到低</option></select>
     <div class="spacer"></div>
-    <span class="count-note" id="filterNote"></span>
+    <span class="count-note" id="filterNote" role="status" aria-live="polite"></span>
   </section>
 
   <section class="kpis">
     <div class="card tile hero">
-      <span class="label">已收金额</span>
+      <span class="label">累计实收</span>
       <span class="value" id="kReceived">—</span>
       <span class="foot" id="kReceivedFoot"></span>
       <svg class="spark" id="kSpark" height="34" aria-hidden="true"></svg>
@@ -369,6 +373,12 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
     <div class="card tile"><span class="label">待收金额</span><span class="value" id="kDue">—</span><span class="foot" id="kDueFoot"></span></div>
     <div class="card tile"><span class="label">签单总额</span><span class="value" id="kTotal">—</span><span class="foot" id="kTotalFoot"></span></div>
     <div class="card tile"><span class="label">已结账项目</span><span class="value" id="kDone">—</span><span class="foot" id="kDoneFoot"></span></div>
+  </section>
+
+  <section class="mobile-only status-tabs" aria-label="按收款状态筛选">
+    <button type="button" data-status="" aria-pressed="true">全部项目 <span id="mobileAllCount"></span></button>
+    <button type="button" data-status="0" aria-pressed="false">待收款 <span id="mobileDueCount"></span></button>
+    <button type="button" data-status="1" aria-pressed="false">已结清 <span id="mobileDoneCount"></span></button>
   </section>
 
   <section class="card meter-card">
@@ -406,7 +416,9 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card ledger-section" id="ledgerSection">
+    <div class="mobile-only ledger-heading"><span id="mobileListTitle">全部项目</span><span id="mobileListCount"></span></div>
+    <div class="mobile-only" id="mobileList" aria-label="项目列表"></div>
     <div class="tbl-wrap">
       <table id="tbl">
         <thead><tr>
@@ -426,36 +438,41 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
   </section>
 </main>
 
+<nav class="mobile-only mobile-nav" aria-label="账本导航">
+  <button type="button" id="mobileLedger" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="15" height="18" rx="3"/><path d="M9 3v18M12 8h4M12 12h4"/></svg><span>项目</span></button>
+  <button type="button" id="mobileAdd" class="mobile-add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>新增项目</span></button>
+  <button type="button" id="mobileStats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>统计</span></button>
+</nav>
+
 <div id="tip"></div>
 <div id="toast"></div>
 
 <!-- ============ 编辑对话框 ============ -->
-<dialog id="editDlg">
+<dialog id="editDlg" aria-labelledby="editTitle">
   <form method="dialog" id="editForm">
     <div class="dlg-head"><h2 id="editTitle">新增项目</h2></div>
     <div class="dlg-body">
       <div class="fld"><label for="fName">项目名称 *</label><input type="text" id="fName" required maxlength="200" placeholder="例：基于STM32的智能鱼缸"></div>
       <div class="grid2">
-        <div class="fld"><label for="fDate">时间</label><input type="date" id="fDate"></div>
-        <div class="fld"><label for="fSource">来源 / 客户</label><input type="text" id="fSource" list="srcList" maxlength="40" placeholder="淘宝 / 自接单 …"><datalist id="srcList"></datalist></div>
-      </div>
-      <div class="grid2">
         <div class="fld"><label for="fAmount">金额 (元) *</label><input type="number" id="fAmount" required min="0" step="1" inputmode="decimal"></div>
+        <div class="fld"><label for="fDeposit">定金 (元)</label><input type="number" id="fDeposit" min="0" step="1" value="0" inputmode="decimal"></div>
+      </div>
+      <div class="fld"><label for="fSource">来源 / 客户</label><input type="text" id="fSource" list="srcList" maxlength="40" placeholder="淘宝 / 自接单 …"><datalist id="srcList"></datalist></div>
+      <label class="check"><input type="checkbox" id="fSettled"><span>已结账（尾款已收到）</span></label>
+      <p class="fine" id="payHint"></p>
+      <details class="project-details" id="projectDetails" open>
+      <summary>日期、单号和备注</summary>
+      <div class="grid2">
+        <div class="fld"><label for="fDate">项目日期</label><input type="date" id="fDate"></div>
         <div class="fld"><label for="fOrder">单号</label><input type="text" id="fOrder" maxlength="60"></div>
       </div>
-
-      <div class="sub-head">收款</div>
       <div class="grid2">
-        <div class="fld"><label for="fDeposit">定金 (元)</label><input type="number" id="fDeposit" min="0" step="1" value="0" inputmode="decimal"></div>
         <div class="fld"><label for="fDepositDate">定金到账日期</label><input type="date" id="fDepositDate"></div>
-      </div>
-      <label class="check"><input type="checkbox" id="fSettled"><span>已结账（尾款已收到）</span></label>
-      <div class="grid2">
-        <div class="fld"><label for="fBalance">尾款 (元) · 自动 = 金额 − 定金</label><input type="text" id="fBalance" class="ro" readonly tabindex="-1"></div>
         <div class="fld" id="fldSettledDate"><label for="fSettledDate">尾款到账日期</label><input type="date" id="fSettledDate"></div>
       </div>
-      <p class="fine" id="payHint"></p>
+      <div class="fld"><label for="fBalance">尾款 (元) · 自动 = 金额 − 定金</label><input type="text" id="fBalance" class="ro" readonly tabindex="-1"></div>
       <div class="fld"><label for="fNote">备注</label><textarea id="fNote" maxlength="500"></textarea></div>
+      </details>
       <p class="err-line" id="editErr" hidden></p>
     </div>
     <div class="dlg-foot">
@@ -464,6 +481,29 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
       <button type="button" class="btn" id="editCancel">取消</button>
       <button type="submit" class="btn primary">保存</button>
     </div>
+  </form>
+</dialog>
+
+<dialog id="mobileMoreDlg" aria-labelledby="mobileMoreTitle">
+  <div class="dlg-head"><h2 id="mobileMoreTitle">更多</h2><button type="button" class="btn ghost" id="mobileMoreClose">完成</button></div>
+  <div class="dlg-body more-options">
+    <button type="button" data-more="sync">云同步设置 <span>›</span></button>
+    <button type="button" data-more="backup">备份与导出 <span>›</span></button>
+    <button type="button" data-more="theme">切换外观 <span id="mobileThemeLabel">跟随系统</span></button>
+    <p id="mobileVersion"></p>
+  </div>
+</dialog>
+
+<dialog id="settleDlg" aria-labelledby="settleTitle">
+  <form id="settleForm">
+    <div class="dlg-head"><h2 id="settleTitle">确认尾款已到账</h2></div>
+    <div class="dlg-body">
+      <p id="settleName"></p><p class="settle-amount" id="settleAmount"></p>
+      <div class="fld"><label for="settleDate">到账日期</label><input type="date" id="settleDate" required></div>
+      <p class="fine">确认后，这个项目将标记为已结清。</p>
+      <p class="err-line" id="settleErr" role="alert" hidden></p>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn" id="settleCancel">取消</button><button type="submit" class="btn primary">确认已到账</button></div>
   </form>
 </dialog>
 
@@ -526,7 +566,7 @@ dialog::backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(2px)}
 
 const SEED = [];
 
-const APP_VERSION = "2026.08.19.2236";
+const APP_VERSION = "2026.10.15.mobile";
 const LS_DATA = "ledger.data.v1";
 const LS_SYNC = "ledger.sync.v1";
 const LS_THEME = "ledger.theme";
@@ -535,6 +575,7 @@ const SVGNS = "http://www.w3.org/2000/svg";
 /* ---------- 工具 ---------- */
 const $ = (s, r) => (r || document).querySelector(s);
 const nowISO = () => new Date().toISOString();
+const todayLocal = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const nf = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 });
 const money = n => nf.format(Math.round(n || 0));
@@ -801,13 +842,13 @@ function inRange(it) {
   if (filt.range === "q") return (n - d) <= 90 * 864e5 && d <= n;
   return true;
 }
-function filtered() {
+function filtered(ignoreStatus = false) {
   const q = filt.q.trim().toLowerCase();
   return live().filter(it => {
     if (!inRange(it)) return false;
     if (filt.src && it.source !== filt.src) return false;
-    if (filt.st === "1" && !it.settled) return false;
-    if (filt.st === "0" && it.settled) return false;
+    if (!ignoreStatus && filt.st === "1" && !it.settled) return false;
+    if (!ignoreStatus && filt.st === "0" && it.settled) return false;
     if (q) {
       const hay = (it.name + " " + (it.orderNo || "") + " " + (it.note || "") + " " + (it.source || "")).toLowerCase();
       if (hay.indexOf(q) < 0) return false;
@@ -820,6 +861,7 @@ function sorted(list) {
   return list.slice().sort((a, b) => {
     let x, y;
     if (k === "balance") { x = balance(a); y = balance(b); }
+    else if (k === "due") { x = due(a); y = due(b); }
     else if (k === "settled") { x = a.settled ? 1 : 0; y = b.settled ? 1 : 0; }
     else if (k === "amount" || k === "deposit") { x = num(a[k]); y = num(b[k]); }
     else { x = String(a[k] || ""); y = String(b[k] || ""); }
@@ -1364,9 +1406,11 @@ function renderAll() {
   renderFilters();
   renderKPI(list);
   renderTable(list);
-  drawTrend(list);
-  drawSrc(list);
-  drawBins(list);
+  if (!window.matchMedia("(max-width:700px)").matches || document.body.dataset.mobileView === "stats") {
+    drawTrend(list);
+    drawSrc(list);
+    drawBins(list);
+  }
 }
 
 /* ============================================================
@@ -1378,7 +1422,7 @@ function openEdit(id) {
   const it = id ? items.find(x => x.id === id) : null;
   $("#editTitle").textContent = it ? "编辑项目" : "新增项目";
   $("#fName").value = it ? it.name : "";
-  $("#fDate").value = it ? (it.date || "") : new Date().toISOString().slice(0, 10);
+  $("#fDate").value = it ? (it.date || "") : todayLocal();
   $("#fSource").value = it ? (it.source || "") : "";
   $("#fAmount").value = it ? num(it.amount) : "";
   $("#fDeposit").value = it ? num(it.deposit) : 0;
@@ -1390,8 +1434,9 @@ function openEdit(id) {
   $("#delBtn").hidden = !it;
   $("#editErr").hidden = true;
   updBalance();
+  $("#projectDetails").open = !window.matchMedia("(max-width:700px)").matches;
   $("#editDlg").showModal();
-  setTimeout(() => $("#fName").focus(), 40);
+  if (!window.matchMedia("(max-width:700px)").matches) setTimeout(() => $("#fName").focus(), 40);
 }
 function updBalance() {
   const a = num($("#fAmount").value), d = Math.min(num($("#fDeposit").value), a);
@@ -1400,7 +1445,7 @@ function updBalance() {
   // 尾款到账日期只在「已结账」时有意义
   $("#fldSettledDate").classList.toggle("off", !settled);
   if (!settled) $("#fSettledDate").value = "";
-  else if (!$("#fSettledDate").value) $("#fSettledDate").value = new Date().toISOString().slice(0, 10);
+  else if (!$("#fSettledDate").value) $("#fSettledDate").value = todayLocal();
 
   const got = settled ? a : d;
   const bits = [];
@@ -1458,7 +1503,7 @@ function toggleSettled(id) {
   const it = items.find(x => x.id === id);
   if (!it) return;
   it.settled = !it.settled;
-  it.settledDate = it.settled ? new Date().toISOString().slice(0, 10) : "";
+  it.settledDate = it.settled ? todayLocal() : "";
   it.updatedAt = nowISO();
   saveLocal(); renderAll(); queueSync();
   toast(it.settled ? "已标记结账：¥" + money(it.amount) : "已撤销结账");
@@ -1754,5 +1799,6 @@ function bind() {
   }
 })();
 </script>
+<script src="./mobile.js"></script>
 </body>
 </html>
